@@ -21,14 +21,16 @@ const Login: React.FC<LoginProps> = ({ setIsAuthenticated }) => {
     setError("");
 
     try {
-      // Call the login function from our auth service
       await loginUser({ email, password });
 
-      // Update authentication state
       setIsAuthenticated(true);
-
-      // Redirect to account page after successful login
-      navigate("/account");
+      localStorage.setItem("isAuthenticated", "true");
+      
+      // Give React time to update the state
+      setTimeout(() => {
+        navigate("/account");
+      }, 100); 
+      
     } catch (error) {
       // Handle different types of errors
       const err = error as {

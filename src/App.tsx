@@ -17,6 +17,8 @@ import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgetPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Account from "./pages/Account";
+import VerifyEmail from './pages/VerifyEmail';
+
 import { checkAuthStatus } from "./services/authService";
 
 // Protected route wrapper component
@@ -39,7 +41,10 @@ const ProtectedRoute = ({
 function App() {
   // State to track if user is scrolled down and authentication
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return localStorage.getItem("isAuthenticated") === "true";
+  });
+    const [isEmailVerified, setIsEmailVerified] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   // Effect to handle scroll events
@@ -138,20 +143,33 @@ function App() {
                 )
               }
             />
+
             <Route
               path="/signup"
               element={
-                isAuthenticated ? (
+                isAuthenticated && !isEmailVerified ? (
+                  <Navigate to="/verify-email" replace />
+                ) : isAuthenticated && isEmailVerified ? (
                   <Navigate to="/account" replace />
                 ) : (
-                  <Signup setIsAuthenticated={setIsAuthenticated} />
+                  <Signup
+                    setIsAuthenticated={setIsAuthenticated}
+                    setIsEmailVerified={setIsEmailVerified}
+                  />
                 )
               }
             />
 
             {/* Password recovery routes */}
             <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password/:token" element={<ResetPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/verify-reset-password" element={<VerifyEmail setIsEmailVerified={() => {}} />} />
+
+            {/*sign up verfication*/}
+            <Route
+              path="/verify-email"
+              element={<VerifyEmail setIsEmailVerified={setIsEmailVerified} />}
+            />
 
             {/* Protected routes */}
             <Route

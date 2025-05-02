@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 // API URL from your auth service
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'http://localhost:5000';
 
 interface ForgotPasswordState {
   email: string;
@@ -48,7 +48,7 @@ const ForgotPassword: React.FC = () => {
         ...state,
         resetSent: true,
         isLoading: false,
-        success: 'Password reset link has been sent to your email address.',
+        success: 'Password reset code has been sent to your email address.',
       });
     } catch (error) {
       const err = error as {
@@ -95,7 +95,7 @@ const ForgotPassword: React.FC = () => {
         </h2>
         <p className="text-gray-600 text-center mb-6">
           {!state.resetSent 
-            ? "Enter your email address and we'll send you a link to reset your password." 
+            ? "Enter your email address and we'll send you a code to reset your password." 
             : "Check your email for instructions to reset your password."}
         </p>
         
@@ -132,11 +132,12 @@ const ForgotPassword: React.FC = () => {
             </div>
             
             <button
+              onClick={() => navigate('/verify-reset-password')}
               type="submit"
               disabled={state.isLoading}
               className={`w-full ${state.isLoading ? 'bg-orange-400' : 'bg-orange-500 hover:bg-orange-600'} text-white py-2 px-4 rounded-md transition duration-300`}
             >
-              {state.isLoading ? 'Sending...' : 'Send Reset Link'}
+              {state.isLoading ? 'Sending...' : 'Send Reset Code'}
             </button>
           </form>
         ) : (

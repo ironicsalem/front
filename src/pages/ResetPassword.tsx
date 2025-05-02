@@ -3,7 +3,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import axios from 'axios';
 
 // API URL from your auth service
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'http://localhost:5000';
 
 interface ResetPasswordState {
   password: string;
@@ -93,9 +93,8 @@ const ResetPassword: React.FC = () => {
 
     try {
       // Call API to reset password
-      await axios.post(`${API_URL}/auth/reset-password`, {
+      await axios.post(`${API_URL}/auth/set-new-password`, {
         token,
-        email,
         password: state.password,
       });
       

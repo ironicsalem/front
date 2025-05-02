@@ -4,6 +4,7 @@ import { registerUser } from '../services/authService';
 
 interface SignupProps {
   setIsAuthenticated: (value: boolean) => void;
+  setIsEmailVerified: (value: boolean) => void;
 }
 
 const Signup: React.FC<SignupProps> = ({ setIsAuthenticated }) => {
@@ -64,15 +65,16 @@ const Signup: React.FC<SignupProps> = ({ setIsAuthenticated }) => {
       });
       
       // Update authentication state
+      localStorage.setItem("isAuthenticated", "true");
       setIsAuthenticated(true);
-      
+            
       // Redirect to account page after successful registration
-      navigate('/account');
+      navigate('/verify-email');
     } catch (error) {
       const err = error as {
         response?: { 
           data?: { 
-            message?: string 
+            error?: string 
           } 
         },
         request?: unknown
@@ -81,7 +83,7 @@ const Signup: React.FC<SignupProps> = ({ setIsAuthenticated }) => {
       if (err.response) {
         // The request was made and the server responded with a status code
         // that falls out of the range of 2xx
-        setError(err.response.data?.message || 'Registration failed. Please try again.');
+        setError(err.response.data?.error || 'Registration failed. Please try again.');
       } else if (err.request) {
         // The request was made but no response was received
         setError('Server not responding. Please try again later.');

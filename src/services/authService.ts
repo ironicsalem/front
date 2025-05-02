@@ -3,7 +3,7 @@
 import axios from 'axios';
 
 // Define your API base URL - change this to your Express.js backend URL
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'http://localhost:5000';
 
 // Interface for login data
 interface LoginData {
@@ -31,11 +31,12 @@ interface User {
  * @returns {Promise<{token: string, user: User}>} - JWT token and user data
  */
 export const loginUser = async (loginData: LoginData): Promise<{token: string, user: User}> => {
-  const response = await axios.post(`${API_URL}/auth/login`, loginData);
+  const response = await axios.post(`${API_URL}/auth/signin`, loginData);
   
   // Store JWT token in localStorage
   if (response.data.token) {
     localStorage.setItem('authToken', response.data.token);
+    
   }
   
   return response.data;
@@ -47,11 +48,12 @@ export const loginUser = async (loginData: LoginData): Promise<{token: string, u
  * @returns {Promise<{token: string, user: User}>} - JWT token and user data
  */
 export const registerUser = async (registerData: RegisterData): Promise<{token: string, user: User}> => {
-  const response = await axios.post(`${API_URL}/auth/register`, registerData);
+  const response = await axios.post(`${API_URL}/auth/signup`, registerData);
   
   // Store JWT token in localStorage
   if (response.data.token) {
     localStorage.setItem('authToken', response.data.token);
+    localStorage.setItem('email', registerData.email);
   }
   
   return response.data;
