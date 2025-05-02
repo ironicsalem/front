@@ -36,10 +36,12 @@ export const loginUser = async (loginData: LoginData): Promise<{token: string, u
   // Store JWT token in localStorage
   if (response.data.token) {
     localStorage.setItem('authToken', response.data.token);
+    console.log('Token stored:', localStorage.getItem('authToken'));
+
     
   }
   
-  return response.data;
+  return response.data.token;
 };
 
 /**
@@ -101,7 +103,7 @@ export const getCurrentUser = async (): Promise<User> => {
   }
   
   const response = await axios.get(
-    `${API_URL}/auth/me`, 
+    `${API_URL}/auth/verify`, 
     {
       headers: {
         Authorization: `Bearer ${token}`
@@ -119,20 +121,22 @@ export const getCurrentUser = async (): Promise<User> => {
 export const checkAuthStatus = async (): Promise<boolean> => {
   try {
     const token = localStorage.getItem('authToken');
-    
+    const email = localStorage.getItem('email');
     if (!token) {
       return false;
     }
     
     // Verify token with backend
     const response = await axios.get(
-      `${API_URL}/auth/verify`, 
+      `${API_URL}/auth/verify`,
       {
+        params: { email },
         headers: {
-          Authorization: `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       }
     );
+    
     
     return response.data.valid === true;
   } catch (error) {
