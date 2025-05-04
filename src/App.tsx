@@ -15,6 +15,7 @@ import SearchResults from "./pages/SearchResults";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgetPassword";
+import CityOverview from "./pages/CityOverview";
 import ResetPassword from "./pages/ResetPassword";
 import Account from "./pages/Account";
 import VerifyEmail from './pages/VerifyEmail';
@@ -131,6 +132,10 @@ function App() {
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/search" element={<SearchResults />} />
+
+            {/* Home route */}
+            <Route path="/city/:cityName" element={< CityOverview/>} />
+
 
             {/* Login route */}
             <Route

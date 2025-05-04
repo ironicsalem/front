@@ -97,7 +97,7 @@ const Signup: React.FC<SignupProps> = ({ setIsAuthenticated }) => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-opacity-75 bg-gray-800">
+    <div className="flex items-center justify-center min-h-screen bg-opacity-75 bg-gray-200">
       <div className="bg-white rounded-lg p-8 w-full max-w-md relative">
         {/* Close button */}
         <div className="absolute top-4 right-4">
@@ -242,7 +242,7 @@ const Signup: React.FC<SignupProps> = ({ setIsAuthenticated }) => {
           <button
             type="submit"
             disabled={isLoading}
-            className={`w-full ${isLoading ? 'bg-orange-400' : 'bg-orange-500 hover:bg-orange-600'} text-white py-2 px-4 rounded-md transition duration-300`}
+            className={`w-full ${isLoading ? 'bg-orange-400' : 'bg-amber-600 hover:bg-amber-700'} text-white py-2 px-4 rounded-md transition duration-300`}
           >
             {isLoading ? 'Creating Account...' : 'Create Account'}
           </button>

@@ -15,13 +15,8 @@ const Navbar = ({ isScrolled, isAuthenticated, setIsAuthenticated }: NavbarProps
 
   const handleLogout = async () => {
     try {
-      // Call custom logout function from auth service
       await logoutUser();
-      
-      // Clear authentication token from localStorage
       localStorage.removeItem('authToken');
-      
-      // Update authentication state
       setIsAuthenticated(false);
       setIsDropdownOpen(false);
       navigate('/');
@@ -46,12 +41,11 @@ const Navbar = ({ isScrolled, isAuthenticated, setIsAuthenticated }: NavbarProps
         <div className="flex justify-between items-center">
           {/* Logo and Brand Name */}
           <Link to="/" className="flex items-center">
-            {/* Logo SVG with amber-600 color (same as button) */}
             <div className="flex items-center">
               <img 
                 src={logo} 
                 alt="Guidak Logo" 
-                className="h-10 w-10 mr-2" 
+                className="h-13 w-10 mr-2" 
                 style={{ filter: 'invert(57%) sepia(52%) saturate(2700%) hue-rotate(360deg) brightness(102%) contrast(101%)' }}
               />
               <span className="text-xl font-bold text-white">Guidak</span>
@@ -70,14 +64,21 @@ const Navbar = ({ isScrolled, isAuthenticated, setIsAuthenticated }: NavbarProps
               Contact
             </Link>
 
-            {/* Authentication */}
             {!isAuthenticated ? (
-              <Link 
-                to="/login"
-                className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-md transition-colors"
-              >
-                Login
-              </Link>
+              <>
+                <Link 
+                  to="/login"
+                  className="text-white hover:text-amber-600 transition-colors"
+                >
+                  Login
+                </Link>
+                <Link 
+                  to="/signup"
+                  className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-md transition-colors"
+                >
+                  Sign Up
+                </Link>
+              </>
             ) : (
               <div className="relative">
                 <button
@@ -102,7 +103,6 @@ const Navbar = ({ isScrolled, isAuthenticated, setIsAuthenticated }: NavbarProps
                   </svg>
                 </button>
 
-                {/* Dropdown menu */}
                 {isDropdownOpen && (
                   <div 
                     className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10"

@@ -1,91 +1,71 @@
-import React from 'react'
-import Hero from '../components/Hero'
-import Footer from '../components/Footer'
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import Hero from '../components/Hero';
+import Footer from '../components/Footer';
 
 const Home: React.FC = () => {
-  // Jordan cities data
+  const navigate = useNavigate();
   const cities = [
-    {
-      "name": "Amman",
-      "overview": "The capital and largest city of Jordan, known for its modernity, Roman ruins, and vibrant culture."
-    },
-    {
-      "name": "Petra",
-      "overview": "A UNESCO World Heritage site and ancient Nabatean city carved into rose-red rock."
-    },
-    {
-      "name": "Aqaba",
-      "overview": "Jordan's only coastal city, famous for its beaches, diving spots, and views of the Red Sea."
-    },
-    {
-      "name": "Jerash",
-      "overview": "Home to one of the best-preserved Roman provincial towns in the world."
-    },
-    {
-      "name": "Madaba",
-      "overview": "Known as the 'City of Mosaics', rich with Byzantine and Umayyad-era artwork."
-    },
-    {
-      "name": "Salt",
-      "overview": "A historic city with Ottoman architecture and a peaceful hilltop atmosphere."
-    },
-    {
-      "name": "Irbid",
-      "overview": "A lively university town in the north of Jordan, blending tradition with youth culture."
-    },
-    {
-      "name": "Zarqa",
-      "overview": "An industrial city and Jordan's second-largest urban area."
-    },
-    {
-      "name": "Karak",
-      "overview": "Famous for its massive Crusader castle and views over the Jordan Valley."
-    },
-    {
-      "name": "Ma'an",
-      "overview": "A desert city and gateway to Petra, with historical and Bedouin heritage."
-    },
-    {
-      "name": "Tafilah",
-      "overview": "A town with ancient roots and natural beauty, surrounded by mountains and springs."
-    },
-    {
-      "name": "Ajloun",
-      "overview": "Known for its forested hills and the Ajloun Castle overlooking the surrounding valleys."
-    }
+    { "name": "Amman" },
+    { "name": "Petra" },
+    { "name": "Aqaba" },
+    { "name": "Jerash" },
+    { "name": "Madaba" },
+    { "name": "Salt" },
+    { "name": "Irbid" },
+    { "name": "Zarqa" },
+    { "name": "Karak" },
+    { "name": "Ma'an" },
+    { "name": "Tafilah" },
+    { "name": "Ajloun" }
   ];
 
+  const handleCityClick = (cityName: string) => {
+    navigate(`/city/${cityName}`);
+  };
+
+  
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero section with Petra background */}
       <Hero 
         backgroundImage="/petra.jpg"
-        title="Wonderful Jordan"
-        subtitle="Explore the wonders of Jordan"
+        title="Guidak"
+        subtitle="Let us guide your journey through Jordan"
       />
+
       
-      {/* Main content area - you can add more sections here */}
+      
+      {/* Main content area */}
       <div className="container mx-auto px-4 py-12">
         {/* Featured destinations */}
         <section className="mb-16">
           <h2 className="text-3xl font-bold mb-8 text-center">Featured Destinations</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {cities.map((city, index) => (
-              <div key={index} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                <div className="h-48 bg-gray-300 relative">
+              <div 
+                key={index} 
+                onClick={() => handleCityClick(city.name)}
+                className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 cursor-pointer group relative"
+              >
+                <div className="h-48 bg-gray-300 relative overflow-hidden">
                   <img 
-                    src={`/cities/${city.name}.png`} 
-                    alt={city.name}
-                    className="w-full h-full object-cover"
+                     src={`/cities/${city.name}/${city.name}.png`}       
+                     alt={city.name}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       target.src = "/placeholder-city.jpg";
                     }}
                   />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+                    <span className="text-white text-lg font-bold">Explore {city.name} →</span>
+                  </div>
                 </div>
                 <div className="p-4">
-                  <h3 className="text-xl font-semibold mb-2">{city.name}</h3>
-                  <p className="text-gray-600">{city.overview}</p>
+                  <h3 className="text-xl font-semibold mb-2 text-gray-800 group-hover:text-amber-600 transition-colors">
+                    {city.name}
+                  </h3>
                 </div>
               </div>
             ))}
