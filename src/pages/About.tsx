@@ -1,7 +1,15 @@
 import React from 'react'
 import Footer from '../components/Footer'
+  import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 
-const About: React.FC = () => {
+const About = () => {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Page header with background image */}

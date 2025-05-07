@@ -32,7 +32,9 @@ interface User {
  */
 export const loginUser = async (loginData: LoginData): Promise<{token: string, user: User}> => {
   const response = await axios.post(`${API_URL}/auth/signin`, loginData);
-  
+  console.log(loginData);
+
+
   // Store JWT token in localStorage
   if (response.data.token) {
     localStorage.setItem('authToken', response.data.token);
@@ -111,36 +113,27 @@ export const getCurrentUser = async (): Promise<User> => {
     }
   );
   
-  return response.data;
+  return response.data.user;
 };
 
 /**
  * Check if user is authenticated
  * @returns {Promise<boolean>} - Authentication status
  */
-export const checkAuthStatus = async (): Promise<boolean> => {
+export const checkAuthStatus = async () => {
+  const token = localStorage.getItem("authToken");
+  if (!token) return false;
+
   try {
-    const token = localStorage.getItem('authToken');
-    const email = localStorage.getItem('email');
-    if (!token) {
-      return false;
-    }
-    
-    // Verify token with backend
-    const response = await axios.get(
-      `${API_URL}/auth/verify`,
-      {
-        params: { email },
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    
-    
-    return response.data.valid === true;
+    const response = await axios.get( `${API_URL}/auth/verify`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    return response.data.valid|| false;
   } catch (error) {
-    console.error('Auth verification error:', error);
+    console.error("Auth verification error:", error);
     return false;
   }
 };

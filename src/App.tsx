@@ -17,10 +17,12 @@ import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgetPassword";
 import CityOverview from "./pages/CityOverview";
 import ResetPassword from "./pages/ResetPassword";
-import Account from "./pages/Account";
+import Account from "./pages/account/Account";
 import VerifyEmail from './pages/VerifyEmail';
-
+import ApplyForm from './pages/ApplyForm';
 import { checkAuthStatus } from "./services/authService";
+import GuidesApplications from "./pages/applicationHandling";
+import TripsPage from "./pages/Trips";
 
 // Protected route wrapper component
 const ProtectedRoute = ({
@@ -40,15 +42,12 @@ const ProtectedRoute = ({
 };
 
 function App() {
-  // State to track if user is scrolled down and authentication
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return localStorage.getItem("isAuthenticated") === "true";
-  });
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+
     const [isEmailVerified, setIsEmailVerified] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Effect to handle scroll events
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 10) {
@@ -58,20 +57,16 @@ function App() {
       }
     };
 
-    // Add scroll event listener
     window.addEventListener("scroll", handleScroll);
 
-    // Clean up event listener
     return () => {
       window.removeEventListener("scroll", handleScroll);
     };
   }, []);
 
-  // Check authentication status when component mounts
   useEffect(() => {
     const verifyAuth = async () => {
       try {
-        // Use the checkAuthStatus function from our custom auth service
         const isAuth = await checkAuthStatus();
         setIsAuthenticated(isAuth);
       } catch (error) {
@@ -84,14 +79,11 @@ function App() {
 
     verifyAuth();
 
-    // Set up event listener for storage changes (for logout in other tabs)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === "authToken") {
         if (!e.newValue) {
-          // Token was removed, user logged out in another tab
           setIsAuthenticated(false);
         } else if (!localStorage.getItem("authToken") && e.newValue) {
-          // Token was added, user logged in in another tab
           setIsAuthenticated(true);
         }
       }
@@ -104,7 +96,6 @@ function App() {
     };
   }, []);
 
-  // Show loading indicator while checking auth status
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -112,6 +103,7 @@ function App() {
       </div>
     );
   }
+  
 
   return (
     <Router>
@@ -164,7 +156,10 @@ function App() {
                 )
               }
             />
-
+            <Route path="/apply" element={<ApplyForm />} />
+            <Route path="/Applicatons" element={<GuidesApplications />} />
+            <Route path="/trips" element={<TripsPage />} />
+      
             {/* Password recovery routes */}
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />

@@ -21,6 +21,8 @@ const Login: React.FC<LoginProps> = ({ setIsAuthenticated }) => {
     setError("");
 
     try {
+      console.log(email);
+
       await loginUser({ email, password });
 
       setIsAuthenticated(true);
