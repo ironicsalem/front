@@ -106,8 +106,8 @@ const AdminView = () => {
               <div className="p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h3 className="text-xl font-semibold text-gray-800">{user?.name}</h3>
-                    <p className="text-gray-600">{user?.email}</p>
+                    <h3 className="text-xl font-semibold text-gray-800">{application.userId.name}</h3>
+                    <p className="text-gray-600">{application.userId.email}</p>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                     application.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :

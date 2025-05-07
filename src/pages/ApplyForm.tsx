@@ -4,15 +4,28 @@ import axios from 'axios';
 
 const ApplyForm = () => {
   const navigate = useNavigate();
-
+  const jordanCities = [
+    'Amman',
+    'Zarqa',
+    'Irbid',
+    'Aqaba',
+    'Madaba',
+    'Jerash',
+    'Salt',
+    'Mafraq',
+    'Karak',
+    'Tafila',
+    'Ma\'an',
+    'Ajloun',
+  ];
   const [languages, setLanguages] = useState<string[]>([]);
   const [newLanguage, setNewLanguage] = useState('');
   const [specialties, setSpecialties] = useState<string[]>([]);
   const [newSpecialty, setNewSpecialty] = useState('');
   const [nationalId, setNationalId] = useState('');
-  const [yearsOfExperience, setYearsOfExperience] = useState('');
   const [behavioralFile, setBehavioralFile] = useState<File | null>(null);
   const [nationalIdFile, setNationalIdFile] = useState<File | null>(null);
+  const [city, setCity] = useState('');
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -47,6 +60,7 @@ const ApplyForm = () => {
     formData.append('nationalIdPicture', nationalIdFile);
     formData.append('languages', JSON.stringify(languages));
     formData.append('specialties', JSON.stringify(specialties));
+    formData.append('city', city);
 
     try {
       setLoading(true);
@@ -110,6 +124,24 @@ const ApplyForm = () => {
               )}
 
               <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+                 {/* City Select */}
+                  <div>
+                    <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
+                      City
+                    </label>
+                    <select
+                      id="city"
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      className="block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
+                      required
+                    >
+                      <option value="" disabled>Select a city</option>
+                      {jordanCities.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
                 <div className="rounded-md shadow-sm space-y-4">
                   {/* Languages */}
                   <div>
