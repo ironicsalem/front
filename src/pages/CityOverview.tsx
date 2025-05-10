@@ -101,46 +101,43 @@ const CityPage: React.FC = () => {
 
       {/* Main content */}
       <div className="flex flex-col">
-        {/* Guides Section */}
-        {/* Guides Section - Modified for 3-by-3 */}
-        <section className="py-20 bg-white">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-3xl font-bold mb-12 text-center relative inline-block">
-              <span className="relative z-10 px-4 bg-white">
-                Meet Our Guides
-              </span>
-              <span className="absolute bottom-0 left-0 right-0 mx-auto w-3/4 h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent z-0"></span>
-            </h2>
+      {/* Guides Section */}
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl font-bold mb-12 text-center relative inline-block">
+            <span className="relative z-10 px-4 bg-white">Meet Our Guides</span>
+            <span className="absolute bottom-0 left-0 right-0 mx-auto w-3/4 h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent z-0"></span>
+          </h2>
 
-            {guides.length === 0 ? (
-              <div className="text-center text-lg text-gray-600 py-12 bg-white rounded-xl max-w-2xl mx-auto p-8 border border-amber-100 shadow-sm">
-                No guides available for this city at the moment. Please check back later.
-              </div>
-            ) : (
-              <div className="relative">
-                {guides.length > 3 && (
-                  <>
-                    <button 
-                      className="hidden md:block absolute left-0 top-1/2 -translate-y-1/2 -translate-x-8 z-10 bg-black/30 hover:bg-black/50 text-white rounded-full w-12 h-12 flex items-center justify-center transition-all duration-300 shadow-xl hover:scale-110"
-                      onClick={handlePrevGuidesGroup}
-                    >
-                      &larr;
-                    </button>
-                    <button 
-                      className="hidden md:block absolute right-0 top-1/2 -translate-y-1/2 translate-x-8 z-10 bg-black/30 hover:bg-black/50 text-white rounded-full w-12 h-12 flex items-center justify-center transition-all duration-300 shadow-xl hover:scale-110"
-                      onClick={handleNextGuidesGroup}
-                    >
-                      &rarr;
-                    </button>
-                  </>
-                )}
+          {/* Filter only valid guides with userId */}
+          {guides.filter(g => g.userId).length === 0 ? (
+            <div className="text-center text-lg text-gray-600 py-12 bg-white rounded-xl max-w-2xl mx-auto p-8 border border-amber-100 shadow-sm">
+              No guides available for this city at the moment. Please check back later.
+            </div>
+          ) : (
+            <div className="relative">
+              {guides.filter(g => g.userId).length > 3 && (
+                <>
+                  <button 
+                    className="hidden md:block absolute left-0 top-1/2 -translate-y-1/2 -translate-x-8 z-10 bg-black/30 hover:bg-black/50 text-white rounded-full w-12 h-12 flex items-center justify-center transition-all duration-300 shadow-xl hover:scale-110"
+                    onClick={handlePrevGuidesGroup}
+                  >
+                    &larr;
+                  </button>
+                  <button 
+                    className="hidden md:block absolute right-0 top-1/2 -translate-y-1/2 translate-x-8 z-10 bg-black/30 hover:bg-black/50 text-white rounded-full w-12 h-12 flex items-center justify-center transition-all duration-300 shadow-xl hover:scale-110"
+                    onClick={handleNextGuidesGroup}
+                  >
+                    &rarr;
+                  </button>
+                </>
+              )}
 
-                <div className="flex flex-wrap justify-center gap-12">
-                  {visibleGuides.map((guide) => (
-                    <div 
-                      key={guide._id}
-                      className="flex flex-col items-center w-48 group"
-                    >
+              <div className="flex flex-wrap justify-center gap-12">
+                {visibleGuides
+                  .filter((guide) => guide.userId)
+                  .map((guide) => (
+                    <div key={guide._id} className="flex flex-col items-center w-48 group">
                       {/* Circular Profile */}
                       <div className="relative w-40 h-40 rounded-full overflow-hidden shadow-lg border-4 border-white hover:border-amber-300 transition-all duration-300 group-hover:scale-105">
                         <img
@@ -149,13 +146,15 @@ const CityPage: React.FC = () => {
                           className="w-full h-full object-cover"
                         />
                       </div>
-                      
+
                       {/* Guide Info */}
                       <div className="mt-6 text-center">
-                        <h3 className="text-lg font-semibold text-gray-800">{guide.userId.name}</h3>
+                        <h3 className="text-lg font-semibold text-gray-800">
+                          {guide.userId.name}
+                        </h3>
                         <div className="flex justify-center mt-2 space-x-1">
-                          {guide.languages.slice(0, 3).map((lang : String) => (
-                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                          {guide.languages.slice(0, 3).map((lang: String, i) => (
+                            <span key={i} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
                               {lang}
                             </span>
                           ))}
@@ -174,25 +173,24 @@ const CityPage: React.FC = () => {
                       </div>
                     </div>
                   ))}
-                </div>
-
-                {guides.length > 3 && (
-                  <div className="flex justify-center mt-8 space-x-3">
-                    {Array.from({ length: Math.ceil(guides.length / 3) }).map((_, i) => (
-                      <button
-                        key={i}
-                        className={`w-4 h-4 rounded-full transition-all duration-300 ${currentGuidesGroup === i ? 'bg-amber-500 scale-125' : 'bg-gray-300'}`}
-                        onClick={() => setCurrentGuidesGroup(i)}
-                      />
-                    ))}
-                  </div>
-                )}
               </div>
-            )}
 
-            {/* Apply Button (remains the same) */}
-          </div>
-        </section>
+              {guides.filter(g => g.userId).length > 3 && (
+                <div className="flex justify-center mt-8 space-x-3">
+                  {Array.from({ length: Math.ceil(guides.filter(g => g.userId).length / 3) }).map((_, i) => (
+                    <button
+                      key={i}
+                      className={`w-4 h-4 rounded-full transition-all duration-300 ${currentGuidesGroup === i ? 'bg-amber-500 scale-125' : 'bg-gray-300'}`}
+                      onClick={() => setCurrentGuidesGroup(i)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </section>
+
 
         {/* Trips Section - Modified for 3-by-3 */}
         <section className="py-20 bg-gradient-to-br from-amber-50 to-blue-50">
