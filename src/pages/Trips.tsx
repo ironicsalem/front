@@ -66,7 +66,7 @@ const TripsPage = () => {
           >
             <div className="relative h-48 overflow-hidden">
               <img
-                src={trip?.imageUrl }
+                src={trip?.imageUrl || 'group.jpg' }
                 alt={trip.title}
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
               />

@@ -153,7 +153,7 @@ const CityPage: React.FC = () => {
                           {guide.userId.name}
                         </h3>
                         <div className="flex justify-center mt-2 space-x-1">
-                          {guide.languages.slice(0, 3).map((lang: String, i) => (
+                          {guide.languages.slice(0, 3).map((lang: String,  i: number) => (
                             <span key={i} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
                               {lang}
                             </span>
