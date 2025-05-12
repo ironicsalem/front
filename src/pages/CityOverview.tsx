@@ -53,8 +53,8 @@ const CityPage: React.FC = () => {
           image: `/cities/${cityName?.toLowerCase()}.jpg`,
         });
 
-        const tripsResponse = await axios.get(`${API_URL}/city/${cityName}/trips`);
-        setTrips(tripsResponse.data);
+        // const tripsResponse = await axios.get(`${API_URL}/city/${cityName}/trips`);
+        // setTrips(tripsResponse.data);
 
         const guidesResponse = await axios.get(`${API_URL}/city/${cityName}/guides`);
 

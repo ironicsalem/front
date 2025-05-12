@@ -23,15 +23,28 @@ interface NewPostState {
 }
 
 interface User {
+  _id: string;
   name: string;
   profilePicture?: string;
+}
+
+interface Trip {
+  _id: string;
+  title: string;
+  description: string;
+  price: number;
+  duration: string;
+  locations: string[];
+  image: string;
 }
 
 const GuideView = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [newPost, setNewPost] = useState<NewPostState>({ title: '', content: '', images: [] });
   const [isLoading, setIsLoading] = useState(true);
-  const [user, setUser] = useState<User | null>(null); 
+  const [user, setUser] = useState<User | null>(null);
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [isLoadingTrips, setIsLoadingTrips] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -42,10 +55,25 @@ const GuideView = () => {
             Authorization: `Bearer ${token}`
           }
         });
-        console.log(response.data.user);
-        setUser(response.data.user); 
+        setUser(response.data.user);
+        
+        if (response.data.user?._id) {
+          fetchTrips(response.data.user._id);
+        }
       } catch (error) {
         console.error('Error fetching user:', error);
+      }
+    };
+
+    const fetchTrips = async (guideId: string) => {
+      setIsLoadingTrips(true);
+      try {
+        const tripsResponse = await axios.get(`${API_URL}/guide/${guideId}/trips`);
+        setTrips(tripsResponse.data || []);
+      } catch (error) {
+        console.error('Error fetching trips:', error);
+      } finally {
+        setIsLoadingTrips(false);
       }
     };
 
@@ -57,12 +85,11 @@ const GuideView = () => {
       setIsLoading(true);
       try {
         const response = await axios.get(`${API_URL}/guide/posts`, {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('authToken')}`
-            }
-          });
-         setPosts(response.data.posts || []);
-
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('authToken')}`
+          }
+        });
+        setPosts(response.data || []);
       } catch (error) {
         console.error('Error fetching posts:', error);
       } finally {
@@ -76,16 +103,14 @@ const GuideView = () => {
   const handleAddPost = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPost.title) return;
-  
-    console.log('Submitting post:', newPost);
-  
+
     const formData = new FormData();
     formData.append('title', newPost.title);
     formData.append('content', newPost.content);
     newPost.images.forEach(image => {
       formData.append('images', image.file);
     });
-  
+
     try {
       setIsLoading(true);
       const response = await axios.post(`${API_URL}/guide/addPost`, formData, {
@@ -94,7 +119,7 @@ const GuideView = () => {
           'Content-Type': 'multipart/form-data',
         },
       });
-  
+
       setPosts(prev => [response.data, ...prev]);
       setNewPost({ title: '', content: '', images: [] });
     } catch (error) {
@@ -103,7 +128,6 @@ const GuideView = () => {
       setIsLoading(false);
     }
   };
-  
 
   const handleDeletePost = async (postId: string) => {
     try {
@@ -141,9 +165,9 @@ const GuideView = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6">
-
-      <div className="mb-8">
+    <div className="max-w-6xl mx-auto px-4 py-6 flex flex-col md:flex-row gap-6">
+      {/* Left Column - Posts */}
+      <div className="flex-1">
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
           <h3 className="text-lg font-semibold mb-4">Create New Post</h3>
           <form onSubmit={handleAddPost} className="space-y-4">
@@ -166,7 +190,6 @@ const GuideView = () => {
                 placeholder="Share your Trip moments"
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-amber-500 focus:border-amber-500 text-sm"
-                
               />
             </div>
             <div>
@@ -207,8 +230,6 @@ const GuideView = () => {
                   </div>
                 )}
               </div>
-
-              
             </div>
             <button
               type="submit"
@@ -221,7 +242,7 @@ const GuideView = () => {
         </div>
 
         {/* Posts List */}
-        <h2 className="text-2xl font-bold mb-6"> Posts</h2>
+        <h2 className="text-2xl font-bold mb-6">Posts</h2>
 
         {posts.length === 0 ? (
           <div className="bg-white rounded-lg shadow-md p-6 text-center">
@@ -242,7 +263,7 @@ const GuideView = () => {
 
                 <div className="p-4 flex items-center space-x-3 border-b">
                   <img
-                    src={user?.profilePicture || '/NoPic.jpg'}
+                    src={user?.profilePicture || 'NoPic.jpg'}
                     alt="Author"
                     className="w-8 h-8 rounded-full object-cover"
                   />
@@ -285,6 +306,55 @@ const GuideView = () => {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Right Column - Available Trips */}
+      <div className="md:w-90 lg:w-96 space-y-6">
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-xl font-bold mb-4">Your Available Trips</h2>
+          <button
+              onClick={() => (true)}
+              className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded-md text-sm"
+            >
+              + Add Trip
+            </button>
+          {isLoadingTrips ? (
+            <div className="text-center py-4">
+              <p>Loading trips...</p>
+            </div>
+          ) : trips.length === 0 ? (
+            <div className="text-center py-4">
+              <p className="text-gray-500">You haven't created any trips yet</p>
+              <p className="text-gray-400 text-sm mt-1">Create trips to offer to travelers</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {trips.map(trip => (
+                <div key={trip._id} className="border rounded-lg overflow-hidden">
+                  <img 
+                    src={trip.image || '/default-trip.jpg'} 
+                    alt={trip.title}
+                    className="w-full h-32 object-cover"
+                  />
+                  <div className="p-3">
+                    <h3 className="font-semibold">{trip.title}</h3>
+                    <p className="text-sm text-gray-600 line-clamp-2">{trip.description}</p>
+                    <div className="flex justify-between items-center mt-2">
+                      <span className="text-amber-600 font-medium">${trip.price}</span>
+                      <span className="text-xs bg-gray-100 px-2 py-1 rounded">{trip.duration}</span>
+                    </div>
+                    <div className="mt-2">
+                      <button className="w-full bg-amber-500 hover:bg-amber-600 text-white text-sm py-1 rounded">
+                         Edit
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
       </div>
     </div>
   );

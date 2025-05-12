@@ -53,7 +53,8 @@ const AdminView = () => {
         const res = await axios.get(`${API_URL}/admin/applications`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setApplications(res.data.applications);
+        console.log(res.data);
+        setApplications(res.data);
       } catch (error) {
         console.error('Failed to fetch applications:', error);
       } finally {
@@ -99,15 +100,15 @@ const AdminView = () => {
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
         </div>
-      ) : applications.length > 0 ? (
+      ) : applications?.length > 0 ? (
         <div className="space-y-6">
           {applications.map(application => (
             <div key={application._id} className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
               <div className="p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h3 className="text-xl font-semibold text-gray-800">{application.userId.name}</h3>
-                    <p className="text-gray-600">{application.userId.email}</p>
+                    <h3 className="text-xl font-semibold text-gray-800">{application.userId?.name}</h3>
+                    <p className="text-gray-600">{application.userId?.email}</p>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                     application.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
