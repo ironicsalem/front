@@ -3,7 +3,7 @@
 import axios from 'axios';
 
 // Define your API base URL - change this to your Express.js backend URL
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'http://localhost:3000/api';
 
 // Get the authentication header
 const getAuthHeader = () => {

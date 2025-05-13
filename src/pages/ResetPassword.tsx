@@ -3,7 +3,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import axios from 'axios';
 
 // API URL from your auth service
-const API_URL = 'http://localhost:5000';
+const API_URL = 'http://localhost:3000';
 
 interface ResetPasswordState {
   password: string;

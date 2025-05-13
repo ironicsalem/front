@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000';
+const API_URL = 'http://localhost:3000';
 
 interface Post {
   _id: string;
@@ -58,6 +59,7 @@ const GuideView = () => {
   const [isLoadingTrips, setIsLoadingTrips] = useState(false);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isLoadingReviews, setIsLoadingReviews] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -339,11 +341,11 @@ const GuideView = () => {
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-xl font-bold mb-4">Your Available Trips</h2>
           <button
-              onClick={() => (true)}
-              className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded-md text-sm"
-            >
-              + Add Trip
-            </button>
+            onClick={() => navigate('/addtrip')}
+            className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded-md text-sm"
+          >
+          + Add Trip
+          </button>
           {isLoadingTrips ? (
             <div className="text-center py-4">
               <p>Loading trips...</p>

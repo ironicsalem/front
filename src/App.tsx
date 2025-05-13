@@ -24,6 +24,7 @@ import { checkAuthStatus } from "./services/authService";
 import GuidesApplications from "./pages/applicationHandling";
 import TripsPage from "./pages/Trips";
 import GuideProfileView from "./pages/account/GuideProfileView";
+import CreateTrip from "./pages/trip_creation/CreateTrip";
 
 // Protected route wrapper component
 const ProtectedRoute = ({
@@ -173,7 +174,11 @@ function App() {
               path="/verify-email"
               element={<VerifyEmail setIsEmailVerified={setIsEmailVerified} />}
             />
-
+            {/* create trip */}
+            <Route
+              path="/addtrip"
+              element={<CreateTrip />}
+            />
             {/* Protected routes */}
             <Route
               path="/account/*"
