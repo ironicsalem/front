@@ -38,6 +38,17 @@ interface Trip {
   image: string;
 }
 
+interface Review {
+  _id: string;
+  author: {
+    name: string;
+    profilePicture?: string;
+  };
+  rating: number;
+  content: string;
+  createdAt: string;
+}
+
 const GuideView = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [newPost, setNewPost] = useState<NewPostState>({ title: '', content: '', images: [] });
@@ -45,6 +56,8 @@ const GuideView = () => {
   const [user, setUser] = useState<User | null>(null);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [isLoadingTrips, setIsLoadingTrips] = useState(false);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [isLoadingReviews, setIsLoadingReviews] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -59,6 +72,7 @@ const GuideView = () => {
         
         if (response.data.user?._id) {
           fetchTrips(response.data.user._id);
+          fetchReviews(response.data.user._id);
         }
       } catch (error) {
         console.error('Error fetching user:', error);
@@ -74,6 +88,18 @@ const GuideView = () => {
         console.error('Error fetching trips:', error);
       } finally {
         setIsLoadingTrips(false);
+      }
+    };
+
+    const fetchReviews = async (guideId: string) => {
+      setIsLoadingReviews(true);
+      try {
+        const response = await axios.get(`${API_URL}/guide/${guideId}/reviews`);
+        setReviews(response.data.reviews || []);
+      } catch (error) {
+        console.error('Error fetching reviews:', error);
+      } finally {
+        setIsLoadingReviews(false);
       }
     };
 
@@ -166,7 +192,7 @@ const GuideView = () => {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 flex flex-col md:flex-row gap-6">
-      {/* Left Column - Posts */}
+      {/* Left Column - Posts and Reviews */}
       <div className="flex-1">
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
           <h3 className="text-lg font-semibold mb-4">Create New Post</h3>
@@ -243,7 +269,6 @@ const GuideView = () => {
 
         {/* Posts List */}
         <h2 className="text-2xl font-bold mb-6">Posts</h2>
-
         {posts.length === 0 ? (
           <div className="bg-white rounded-lg shadow-md p-6 text-center">
             <p className="text-gray-500">You haven't created any posts yet</p>
@@ -306,9 +331,10 @@ const GuideView = () => {
             ))}
           </div>
         )}
+
       </div>
 
-      {/* Right Column - Available Trips */}
+      {/* Available Trips */}
       <div className="md:w-90 lg:w-96 space-y-6">
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-xl font-bold mb-4">Your Available Trips</h2>
@@ -354,8 +380,51 @@ const GuideView = () => {
             </div>
           )}
         </div>
-
+        
+        {/* Reviews Section */}
+        <div className="mt-8 bg-white rounded-lg shadow-md p-6">
+        <h2 className="text-2xl font-bold mb-6">Your Reviews</h2>
+          
+          {isLoadingReviews ? (
+            <div className="text-center py-4">
+              <p>Loading reviews...</p>
+            </div>
+          ) : reviews.length === 0 ? (
+            <div className="text-center py-4">
+              <p className="text-gray-500">You haven't received any reviews yet</p>
+            </div>
+          ) : (
+            <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+              {reviews.map((review) => (
+                <div key={review._id} className="border-b pb-4 last:border-b-0">
+                  <div className="flex items-center space-x-3 mb-2">
+                    <img
+                      src={review.author.profilePicture || '/NoPic.jpg'}
+                      alt={review.author.name}
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                    <div>
+                      <p className="font-medium text-sm">{review.author.name}</p>
+                      <div className="flex items-center">
+                        {[...Array(5)].map((_, i) => (
+                          <span key={i} className={i < review.rating ? 'text-amber-400' : 'text-gray-300'}>
+                            ★
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-gray-600 text-sm">{review.content}</p>
+                  <p className="text-xs text-gray-400 mt-2">
+                    {new Date(review.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
+
     </div>
   );
 };

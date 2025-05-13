@@ -53,13 +53,12 @@ const CityPage: React.FC = () => {
           image: `/cities/${cityName?.toLowerCase()}.jpg`,
         });
 
-        // const tripsResponse = await axios.get(`${API_URL}/city/${cityName}/trips`);
-        // setTrips(tripsResponse.data);
+        const tripsResponse = await axios.get(`${API_URL}/city/${cityName}/trips`);
+        setTrips(tripsResponse.data);
 
         const guidesResponse = await axios.get(`${API_URL}/city/${cityName}/guides`);
 
         setGuides(guidesResponse.data);
-        console.log(guidesResponse.data);
         setLoading(false);
       } catch (err) {
         setError('Failed to load data');
@@ -141,7 +140,7 @@ const CityPage: React.FC = () => {
                       {/* Circular Profile */}
                       <div className="relative w-40 h-40 rounded-full overflow-hidden shadow-lg border-4 border-white hover:border-amber-300 transition-all duration-300 group-hover:scale-105">
                         <img
-                          src={guide.userId.profilePicture || '/NoPic.jpg'}
+                          src={guide.userId.profilePicture || 'NoPic.jpg'}
                           alt={guide.userId.name}
                           className="w-full h-full object-cover"
                         />
@@ -227,15 +226,15 @@ const CityPage: React.FC = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   {visibleTrips.map((trip) => (
-                    <div key={trip._id} className="rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow h-96 bg-white group">
-                      <div className="relative h-64 overflow-hidden">
+                    <div key={trip._id} className="rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow h-110 bg-white group">
+                      <div className="relative h-60 overflow-hidden">
                         <img
-                          src={`/cities/${cityName}/gallery/${trip.image}`}
+                          src={trip.imageURL || 'group.jpg'}
                           alt={trip.title}
                           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
-                            target.src = '/placeholder-gallery.jpg';
+                            target.src = '/NoPic.jpg';
                           }}
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">

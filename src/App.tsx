@@ -23,6 +23,7 @@ import ApplyForm from './pages/ApplyForm';
 import { checkAuthStatus } from "./services/authService";
 import GuidesApplications from "./pages/applicationHandling";
 import TripsPage from "./pages/Trips";
+import GuideProfileView from "./pages/account/GuideProfileView";
 
 // Protected route wrapper component
 const ProtectedRoute = ({
@@ -180,12 +181,13 @@ function App() {
                 </ProtectedRoute>
               }
             />
+              <Route path="/guide/:guideId" element={<GuideProfileView />} />
 
             {/* Catch-all route for 404 */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
-
+              
         {/* You can add a Footer component here if needed */}
       </div>
     </Router>

@@ -4,6 +4,8 @@ import { loginUser } from "../services/authService";
 
 interface LoginProps {
   setIsAuthenticated: (value: boolean) => void;
+  setIsEmailVerified: (value: boolean) => void;
+
 }
 
 const Login: React.FC<LoginProps> = ({ setIsAuthenticated }) => {
@@ -39,10 +41,15 @@ const Login: React.FC<LoginProps> = ({ setIsAuthenticated }) => {
         response?: {
           data?: {
             message?: string;
+            error?: string;
           };
-        };
+          };
         request?: unknown;
+     
       };
+      setTimeout(() => {
+        navigate("/verify-email");
+      }, 2000);
 
       if (err.response) {
         // The request was made and the server responded with a status code
