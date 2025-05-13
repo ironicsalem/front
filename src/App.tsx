@@ -137,7 +137,9 @@ function App() {
                 isAuthenticated ? (
                   <Navigate to="/account" replace />
                 ) : (
-                  <Login setIsAuthenticated={setIsAuthenticated} />
+                  <Login 
+                  setIsAuthenticated={setIsAuthenticated}
+                  setIsEmailVerified={setIsEmailVerified} />
                 )
               }
             />
@@ -188,7 +190,7 @@ function App() {
           </Routes>
         </main>
               
-        {/* You can add a Footer component here if needed */}
+        {/* we can add a Footer component here if needed */}
       </div>
     </Router>
   );
