@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 // API URL from your auth service
-const API_URL = 'http://localhost:3000';
+const API_URL = 'http://localhost:5000';
 
 interface ForgotPasswordState {
   email: string;

@@ -1,6 +1,6 @@
-// TripConfirmation.tsx
 import React from 'react';
 import { TripData } from '../CreateTrip';
+import { useNavigate } from 'react-router-dom';
 
 interface TripConfirmationProps {
   tripData: TripData;
@@ -13,9 +13,16 @@ const TripConfirmation: React.FC<TripConfirmationProps> = ({
   handleSubmit,
   loading
 }) => {
+  // Safely initialize with default values
+  const safeTripData = {
+    ...tripData,
+    path: tripData.path || [], // Ensure path is always an array
+    schedule: tripData.schedule || [] // Ensure schedule is always an array
+  };
+
   // Generate image preview URL if image exists
-  const imagePreview = tripData.image 
-    ? URL.createObjectURL(tripData.image) 
+  const imagePreview = safeTripData.image 
+    ? URL.createObjectURL(safeTripData.image) 
     : null;
   
   // Format date for display
@@ -28,14 +35,15 @@ const TripConfirmation: React.FC<TripConfirmationProps> = ({
   };
   
   // Group schedule items by date for better display
-  const scheduleByDate = tripData.schedule.reduce((acc, item) => {
+  const scheduleByDate = safeTripData.schedule.reduce((acc, item) => {
     const dateString = item.date.toDateString();
     if (!acc[dateString]) {
       acc[dateString] = [];
     }
     acc[dateString].push(item);
     return acc;
-  }, {} as Record<string, typeof tripData.schedule>);
+  }, {} as Record<string, typeof safeTripData.schedule>);
+  const navigate = useNavigate();
 
   return (
     <div>
@@ -46,10 +54,10 @@ const TripConfirmation: React.FC<TripConfirmationProps> = ({
         {/* Title and City */}
         <div className="flex items-center justify-between">
           <h3 className="text-xl font-semibold">
-            {tripData.city} Trip
+            {safeTripData.city} Trip
           </h3>
           <span className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm">
-            {tripData.type}
+            {safeTripData.type}
           </span>
         </div>
         
@@ -67,21 +75,21 @@ const TripConfirmation: React.FC<TripConfirmationProps> = ({
         {/* Price */}
         <div className="flex items-center justify-between border-b pb-4">
           <span className="text-gray-600">Price per person</span>
-          <span className="font-semibold">{tripData.price} JD</span>
+          <span className="font-semibold">{safeTripData.price} JD</span>
         </div>
         
         {/* Description */}
         <div>
           <h4 className="text-lg font-medium mb-2">Description</h4>
           <p className="text-gray-600">
-            {tripData.description}
+            {safeTripData.description}
           </p>
         </div>
         
         {/* Schedule */}
         <div>
           <h4 className="text-lg font-medium mb-2">Schedule</h4>
-          {Object.keys(scheduleByDate).length > 0 ? (
+          {safeTripData.schedule.length > 0 ? (
             <div className="space-y-3">
               {Object.entries(scheduleByDate).map(([dateString, items]) => (
                 <div key={dateString} className="border rounded-md p-3">
@@ -104,9 +112,9 @@ const TripConfirmation: React.FC<TripConfirmationProps> = ({
         {/* Path */}
         <div>
           <h4 className="text-lg font-medium mb-2">Path & Attractions</h4>
-          {tripData.path.length > 0 ? (
+          {safeTripData.path.length > 0 ? (
             <div className="space-y-2">
-              {tripData.path.map((location, idx) => (
+              {safeTripData.path.map((location, idx) => (
                 <div key={idx} className="flex items-center">
                   <div className="w-6 h-6 bg-red-800 rounded-full flex items-center justify-center mr-3">
                     <span className="text-white text-xs font-bold">{idx + 1}</span>
@@ -122,7 +130,11 @@ const TripConfirmation: React.FC<TripConfirmationProps> = ({
         
         {/* Submit Button */}
         <button
-          onClick={handleSubmit}
+          onClick={async () => {
+            await handleSubmit();
+            alert('Trip created successfully!'); 
+            navigate('/account');
+          }}
           disabled={loading}
           className="w-full mt-4 bg-orange-400 text-white rounded-lg py-3 hover:bg-orange-500 transition disabled:bg-orange-300"
         >

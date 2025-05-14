@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3000';
+const API_URL = 'http://localhost:5000';
 
 interface Post {
   _id: string;
@@ -72,19 +72,19 @@ const GuideView = () => {
         });
         setUser(response.data.user);
         
-        if (response.data.user?._id) {
-          fetchTrips(response.data.user._id);
-          fetchReviews(response.data.user._id);
-        }
+        fetchTrips(response.data.user._id);
+        fetchReviews(response.data.user._id);
+        
       } catch (error) {
         console.error('Error fetching user:', error);
       }
     };
 
-    const fetchTrips = async (guideId: string) => {
+    const fetchTrips = async (userId: string) => {
       setIsLoadingTrips(true);
       try {
-        const tripsResponse = await axios.get(`${API_URL}/guide/${guideId}/trips`);
+        const tripsResponse = await axios.get(`${API_URL}/guide/${userId}/trips`);
+        console.log(tripsResponse.data);
         setTrips(tripsResponse.data || []);
       } catch (error) {
         console.error('Error fetching trips:', error);
@@ -342,7 +342,7 @@ const GuideView = () => {
           <h2 className="text-xl font-bold mb-4">Your Available Trips</h2>
           <button
             onClick={() => navigate('/addtrip')}
-            className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded-md text-sm"
+            className="bg-amber-500 hover:bg-amber-600 mb-5 text-white px-3 py-1 rounded-md text-sm"
           >
           + Add Trip
           </button>
@@ -360,7 +360,7 @@ const GuideView = () => {
               {trips.map(trip => (
                 <div key={trip._id} className="border rounded-lg overflow-hidden">
                   <img 
-                    src={trip.image || '/default-trip.jpg'} 
+                    src={trip.image || '/group.jpg'} 
                     alt={trip.title}
                     className="w-full h-32 object-cover"
                   />

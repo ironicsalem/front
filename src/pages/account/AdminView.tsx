@@ -19,7 +19,7 @@ interface GuideApplication {
   createdAt?: string;
 }
 
-const API_URL = 'http://localhost:3000';
+const API_URL = 'http://localhost:5000';
 
 const AdminView = () => {
   const [applications, setApplications] = useState<GuideApplication[]>([]);

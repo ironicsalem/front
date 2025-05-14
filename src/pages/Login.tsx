@@ -23,7 +23,6 @@ const Login: React.FC<LoginProps> = ({ setIsAuthenticated }) => {
     setError("");
 
     try {
-      console.log(email);
 
       await loginUser({ email, password });
 
@@ -47,8 +46,9 @@ const Login: React.FC<LoginProps> = ({ setIsAuthenticated }) => {
         request?: unknown;
      
       };
+      if (err?.response?.data?.error === 'Email not verified.')
       setTimeout(() => {
-        navigate("/verify-email");
+      navigate('/verify-email');
       }, 2000);
 
       if (err.response) {

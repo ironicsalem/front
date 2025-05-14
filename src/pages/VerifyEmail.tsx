@@ -21,7 +21,7 @@ const VerifyEmail: React.FC<VerifyEmailProps> = ({ setIsEmailVerified }) => {
     setSuccess("");
 
     const email = localStorage.getItem("email");
-
+    console.log(email);
     if (!email) {
       setError("No email found. Please register again.");
       setIsLoading(false);
@@ -29,7 +29,7 @@ const VerifyEmail: React.FC<VerifyEmailProps> = ({ setIsEmailVerified }) => {
     }
 
     try {
-      const response = await axios.post("http://localhost:3000/auth/verify-email", {
+      const response = await axios.post("http://localhost:5000/auth/verify-email", {
         email,
         code,
       });

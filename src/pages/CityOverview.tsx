@@ -40,7 +40,7 @@ const CityPage: React.FC = () => {
   const visibleGuides = guides.slice(currentGuidesGroup * 3, currentGuidesGroup * 3 + 3);
   const visibleTrips = trips.slice(currentTripsGroup * 3, currentTripsGroup * 3 + 3);
 
-  const API_URL = 'http://localhost:3000';
+  const API_URL = 'http://localhost:5000';
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -140,7 +140,7 @@ const CityPage: React.FC = () => {
                       {/* Circular Profile */}
                       <div className="relative w-40 h-40 rounded-full overflow-hidden shadow-lg border-4 border-white hover:border-amber-300 transition-all duration-300 group-hover:scale-105">
                         <img
-                          src={guide.userId.profilePicture || 'NoPic.jpg'}
+                          src={guide.userId.profilePicture || '/NoPic.jpg'}
                           alt={guide.userId.name}
                           className="w-full h-full object-cover"
                         />
@@ -229,7 +229,7 @@ const CityPage: React.FC = () => {
                     <div key={trip._id} className="rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow h-110 bg-white group">
                       <div className="relative h-60 overflow-hidden">
                         <img
-                          src={trip.imageURL || 'group.jpg'}
+                          src={trip.imageURL || '/group.jpg'}
                           alt={trip.title}
                           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                           onError={(e) => {
