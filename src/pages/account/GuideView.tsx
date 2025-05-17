@@ -36,7 +36,7 @@ interface Trip {
   price: number;
   duration: string;
   locations: string[];
-  image: string;
+  imageUrl: string;
 }
 
 interface Review {
@@ -360,7 +360,7 @@ const GuideView = () => {
               {trips.map(trip => (
                 <div key={trip._id} className="border rounded-lg overflow-hidden">
                   <img 
-                    src={trip.image || '/group.jpg'} 
+                    src={trip.imageUrl || '/group.jpg'} 
                     alt={trip.title}
                     className="w-full h-32 object-cover"
                   />

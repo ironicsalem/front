@@ -21,7 +21,7 @@ const VerifyEmail: React.FC<VerifyEmailProps> = ({ setIsEmailVerified }) => {
     setSuccess("");
 
     const email = localStorage.getItem("email");
-    console.log(email);
+    
     if (!email) {
       setError("No email found. Please register again.");
       setIsLoading(false);

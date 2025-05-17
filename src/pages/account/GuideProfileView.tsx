@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 
 const API_URL = 'http://localhost:5000';
 
@@ -20,12 +20,13 @@ interface Guide {
 
 interface Trip {
   _id: string;
+  city: string,
   title: string;
   description: string;
   price: number;
-  duration: string;
-  locations: string[];
-  image: string;
+  schedule: string;
+  path: string[];
+  imageUrl: string;
 }
 
 interface Review {
@@ -38,7 +39,6 @@ interface Review {
   content: string;
   createdAt: string;
 }
-
 
 interface Post {
   _id: string;
@@ -56,6 +56,7 @@ interface ReviewFormData {
 }
 
 const GuideProfileView = () => {
+  const navigate = useNavigate();
   const { guideId } = useParams<{ guideId: string }>();
   const [guide, setGuide] = useState<Guide | null>(null);
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -77,6 +78,8 @@ const GuideProfileView = () => {
   const [submitError, setSubmitError] = useState('');
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+
     const fetchData = async () => {
       try {
         const [guideRes, tripsRes, reviewsRes, postsRes] = await Promise.all([
@@ -211,7 +214,6 @@ const GuideProfileView = () => {
     }
   };
 
-  // Star Rating Component
   const StarRating = ({ rating, interactive = false, onRatingChange }: 
     { rating: number, interactive?: boolean, onRatingChange?: (rating: number) => void }) => {
     return (
@@ -224,7 +226,7 @@ const GuideProfileView = () => {
             onClick={() => interactive && onRatingChange?.(star)}
             disabled={!interactive}
           >
-            <span className={star <= rating ? 'text-yellow-500' : 'text-gray-300'}>
+            <span className={star <= rating ? 'text-amber-500' : 'text-gray-300'}>
               {star <= rating ? '★' : '☆'}
             </span>
           </button>
@@ -233,7 +235,6 @@ const GuideProfileView = () => {
     );
   };
 
-  // Review Card Component
   const ReviewCard = ({ review }: { review: Review }) => {
     const reviewDate = new Date(review.createdAt);
     const formattedDate = reviewDate.toLocaleDateString('en-US', {
@@ -243,13 +244,13 @@ const GuideProfileView = () => {
     });
 
     return (
-      <div className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow">
+      <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-all duration-300">
         <div className="flex items-start gap-4">
           <div className="flex-shrink-0">
             <img
-              src={review.author.profilePicture || '/placeholder-user.svg'}
+              src={review.author.profilePicture || '/NoPic.jpg'}
               alt={review.author.name}
-              className="w-12 h-12 rounded-full object-cover"
+              className="w-12 h-12 rounded-full object-cover border-2 border-amber-800"
             />
           </div>
           <div className="flex-1 min-w-0">
@@ -260,7 +261,6 @@ const GuideProfileView = () => {
               </div>
               <div className="flex items-center">
                 <StarRating rating={review.rating} />
-                <span className="ml-1 text-sm text-gray-500">{review.rating.toFixed(1)}</span>
               </div>
             </div>
             <p className="mt-3 text-gray-700 whitespace-pre-line">{review.content}</p>
@@ -270,7 +270,6 @@ const GuideProfileView = () => {
     );
   };
 
-  // Post Card Component
   const PostCard = ({ post }: { post: Post }) => {
     const postDate = new Date(post.createdAt);
     const formattedDate = postDate.toLocaleDateString('en-US', {
@@ -280,39 +279,72 @@ const GuideProfileView = () => {
     });
 
     return (
-      <div className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow mb-4">
+      <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-all duration-300 mb-4">
         <div className="flex flex-col">
           <div>
-            <time className="text-sm text-gray-500">{formattedDate}</time>
+            9<time className="text-sm text-gray-500">{formattedDate}</time>
           
-                <div className="p-4">
-                  <h3 className="font-semibold mb-2">{post.title}</h3>
-                  <p className="text-gray-600 text-sm mb-3 whitespace-pre-line">{post.content}</p>
+            <div className="p-4">
+              <h3 className="font-semibold text-lg mb-2">{post.title}</h3>
+              <p className="text-gray-600 mb-3 whitespace-pre-line">{post.content}</p>
 
-                  {post.images?.length > 0 && (
-                    <div className={`grid gap-2 mt-3 ${
-                      post.images.length === 1 ? 'grid-cols-1' :
-                      post.images.length === 2 ? 'grid-cols-2' :
-                      post.images.length === 3 ? 'grid-cols-2' : 'grid-cols-2'
-                    }`}>
-                      {post.images.slice(0, 4).map((image, index) => (
-                        <div
-                          key={index}
-                          className={`relative aspect-square ${
-                            post.images.length === 3 && index === 0 ? 'row-span-2' : ''
-                          }`}
-                        >
-                          <img
-                            src={image}
-                            alt={`Post ${index}`}
-                            className="w-full h-full object-cover rounded-md"
-                          />
-                        </div>
-                      ))}
+              {post.images?.length > 0 && (
+                <div className={`grid gap-2 mt-3 ${
+                  post.images.length === 1 ? 'grid-cols-1' :
+                  post.images.length === 2 ? 'grid-cols-2' :
+                  post.images.length === 3 ? 'grid-cols-2' : 'grid-cols-2'
+                }`}>
+                  {post.images.slice(0, 4).map((image, index) => (
+                    <div
+                      key={index}
+                      className={`relative aspect-square ${
+                        post.images.length === 3 && index === 0 ? 'row-span-2' : ''
+                      }`}
+                    >
+                      <img
+                        src={image}
+                        alt={`Post ${index}`}
+                        className="w-full h-full object-cover rounded-md hover:scale-105 transition-transform duration-300"
+                      />
                     </div>
-                  )}
-               </div>
+                  ))}
+                </div>
+              )}
             </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const TripCard = ({ trip }: { trip: Trip }) => {
+    return (
+      <div 
+        className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer"
+        onClick={() => navigate(`/trip/${trip._id}`)}
+      >
+        <div className="relative h-48 overflow-hidden">
+          <img 
+            src={trip.imageUrl || '/group.jpg'} 
+            alt={trip.title} 
+            className="w-full h-full object-cover hover:scale-110 transition-transform duration-700"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
+          <div className="absolute bottom-0 left-0 p-4">
+            <h3 className="text-xl font-bold text-white">{trip.title}</h3>
+            <p className="text-amber-300 font-medium">{trip.price} JD</p>
+          </div>
+        </div>
+        <div className="p-6">
+          <p className="text-gray-600 line-clamp-2 mb-4">{trip.description}</p>
+          <div className="flex items-center justify-between">
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800">
+              {trip.city}
+            </span>
+            <button className="text-amber-600 hover:text-amber-700 font-medium">
+              View Details →
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -320,7 +352,7 @@ const GuideProfileView = () => {
 
   if (loading) return (
     <div className="flex justify-center items-center min-h-screen">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
     </div>
   );
 
@@ -332,177 +364,167 @@ const GuideProfileView = () => {
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column - Posts */}
-        <div className="lg:col-span-1">
-          <div className="bg-white rounded-xl shadow-md overflow-hidden sticky top-8">
-            <div className="p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Guide Posts</h2>
+    <div className="flex flex-col min-h-screen bg-gray-50">
+      {/* Profile Header */}
+      <div className="relative bg-gradient-to-r from-amber-500 to-amber-950 py-16">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row items-center gap-8">
+            <div className="relative">
+              <img
+                src={guide.userId.profilePicture || '/placeholder-user.svg'}
+                alt={guide.userId.name}
+                className="w-32 h-32 md:w-48 md:h-48 rounded-full object-cover border-4 border-white shadow-xl"
+              />
+              <div className="absolute -bottom-2 -right-2 bg-white rounded-full p-2 shadow-lg">
+                <div className="bg-amber-500 text-white rounded-full px-3 py-1 flex items-center">
+                  <StarRating rating={Math.round(guide.averageRating)} />
+                  <span className="ml-1 font-medium">{guide.averageRating.toFixed(1)}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="text-white flex-1">
+              <h1 className="text-3xl md:text-4xl font-bold mb-2">{guide.userId.name}</h1>
+              <div className="flex items-center mb-4">
+                <svg className="w-5 h-5 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                </svg>
+                <span className="text-lg">{guide.city}</span>
+              </div>
+              
+              <p className="text-lg mb-6 max-w-2xl">
+                {guide.userId.bio || 'No bio provided'}
+              </p>
+              
+              <div className="flex flex-wrap gap-3">
+                {guide.languages?.map(language => (
+                  <span key={language} className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-white text-amber-600">
+                    {language}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="container mx-auto px-4 py-12 flex-1">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column - Posts */}
+          <div className="lg:col-span-1 space-y-8">
+            {/* About Guide Section */}
+            <section className="bg-white rounded-xl shadow-sm p-6">
+              <h2 className="text-2xl font-bold mb-6 relative inline-block">
+                <span className="relative z-10 px-4 bg-white">
+                  About Guide
+                </span>
+                <span className="absolute bottom-0 left-0 right-0 mx-auto w-3/4 h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent z-0"></span>
+              </h2>
+              
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-medium text-gray-900">Experience</h3>
+                  <p className="text-gray-600">Certified local guide with extensive knowledge of {guide.city} and surrounding areas.</p>
+                </div>
+                
+                {guide.behavioralCertificate && (
+                  <div>
+                    <h3 className="font-medium text-gray-900">Certification</h3>
+                    <a
+                      href={guide.behavioralCertificate}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-amber-600 hover:text-amber-700 inline-flex items-center"
+                    >
+                      View Behavioral Certificate
+                      <svg className="w-4 h-4 ml-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clipRule="evenodd" />
+                      </svg>
+                    </a>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* Guide Posts Section */}
+            <section className="bg-white rounded-xl shadow-sm p-6">
+              <h2 className="text-2xl font-bold mb-6 relative inline-block">
+                <span className="relative z-10 px-4 bg-white">
+                  Guide Posts
+                </span>
+                <span className="absolute bottom-0 left-0 right-0 mx-auto w-3/4 h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent z-0"></span>
+              </h2>
+              
               {posts.length === 0 ? (
-                <p className="text-gray-500">No posts available from this guide yet.</p>
+                <div className="text-center py-8">
+                  <p className="text-gray-500">No posts available from this guide yet.</p>
+                </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {posts.map(post => (
                     <PostCard key={post._id} post={post} />
                   ))}
                 </div>
               )}
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column - Profile, Trips, and Reviews */}
-        <div className="lg:col-span-2 space-y-8">
-          {/* Profile Header */}
-          <div className="bg-white rounded-xl shadow-md overflow-hidden">
-            <div className="md:flex">
-              <div className="md:flex-shrink-0 p-6">
-                <img
-                  src={guide.userId.profilePicture || '/placeholder-user.svg'}
-                  alt={guide.userId.name}
-                  className="h-32 w-32 md:h-48 md:w-48 rounded-full object-cover mx-auto border-4 border-white shadow-lg"
-                />
-              </div>
-              <div className="p-8 flex-1">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <h1 className="text-2xl font-bold text-gray-900">{guide.userId.name}</h1>
-                    <div className="mt-1 flex items-center">
-                      <StarRating rating={Math.round(guide.averageRating)} />
-                      <span className="ml-2 text-gray-600">
-                        {guide.averageRating.toFixed(1)} ({reviews.length} reviews)
-                      </span>
-                    </div>
-                    <p className="mt-2 text-gray-600">
-                      <span className="flex items-center">
-                        <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                        </svg>
-                        {guide.city}
-                      </span>
-                    </p>
-                  </div>
-                  {guide.behavioralCertificate && (
-                    <a
-                      href={guide.behavioralCertificate}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-4 md:mt-0 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    >
-                      View Certificate
-                    </a>
-                  )}
-                </div>
-                
-                <div className="mt-4">
-                  <h3 className="text-sm font-medium text-gray-900">About</h3>
-                  <p className="mt-1 text-sm text-gray-600">
-                    {guide.userId.bio || 'No bio provided'}
-                  </p>
-                </div>
-                
-                <div className="mt-4">
-                  <h3 className="text-sm font-medium text-gray-900">Languages</h3>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {guide.languages?.map(language => (
-                      <span key={language} className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {language}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
+            </section>
           </div>
 
-          {/* Trips Section */}
-          <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Offered Trips</h2>
-            {trips.length === 0 ? (
-              <div className="bg-white rounded-lg shadow p-6 text-center">
-                <p className="text-gray-500">No trips available from this guide yet.</p>
-              </div>
-            ) : (
-              <div className="grid gap-6 sm:grid-cols-2">
-                {trips.map(trip => (
-                  <div key={trip._id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                    <img 
-                      src={trip.image || '/group.jpg'} 
-                      alt={trip.title} 
-                      className="w-full h-48 object-cover"
-                    />
-                    <div className="p-6">
-                      <h3 className="text-lg font-semibold text-gray-900">{trip.title}</h3>
-                      <p className="mt-2 text-sm text-gray-600 line-clamp-2">{trip.description}</p>
-                      <div className="mt-4 flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-500">
-                          <svg className="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                          </svg>
-                          {trip.locations?.join(', ')}
-                        </span>
-                        <span className="text-sm font-semibold text-amber-600">
-                          {trip.price} JD
-                        </span>
-                      </div>
-                      <div className="mt-3 text-sm text-gray-500">
-                        <svg className="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                        </svg>
-                        {trip.duration}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-
-          {/* Reviews Section */}
-          <section className="mt-12">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Reviews</h2>
-              <span className="text-gray-600">{reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}</span>
-            </div>
-
-            {/* Review Form */}
-            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Share your experience</h3>
-              {submitSuccess && (
-                <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700">
-                  Thank you for your review! It has been submitted successfully.
+          {/* Right Column - Trips and Reviews */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Offered Trips Section */}
+            <section className="bg-white rounded-xl shadow-sm p-8">
+              <h2 className="text-2xl font-bold mb-8 relative inline-block">
+                <span className="relative z-10 px-4 bg-white">
+                  Offered Trips
+                </span>
+                <span className="absolute bottom-0 left-0 right-0 mx-auto w-3/4 h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent z-0"></span>
+              </h2>
+              
+              {trips.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">No trips available from this guide yet.</p>
+                </div>
+              ) : (
+                <div className="grid gap-6 md:grid-cols-2">
+                  {trips.map(trip => (
+                    <TripCard key={trip._id} trip={trip} />
+                  ))}
                 </div>
               )}
-              {submitError && (
-                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-                  {submitError}
-                </div>
-              )}
-              <form onSubmit={handleSubmitReview}>
-                <div className="space-y-4">
-                  <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                      Your Name
-                    </label>
-                    <input
-                      type="text"
-                      id="name"
-                      name="name"
-                      value={reviewForm.name}
-                      onChange={handleReviewChange}
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500 ${
-                        formErrors.name ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                      placeholder="Enter your name"
-                    />
-                    {formErrors.name && (
-                      <p className="mt-1 text-sm text-red-600">{formErrors.name}</p>
-                    )}
+            </section>
+
+            {/* Reviews Section */}
+            <section className="bg-white rounded-xl shadow-sm p-8">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+                <h2 className="text-2xl font-bold relative inline-block">
+                  <span className="relative z-10 px-4 bg-white">
+                    Traveler Reviews
+                  </span>
+                  <span className="absolute bottom-0 left-0 right-0 mx-auto w-3/4 h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent z-0"></span>
+                </h2>
+                <span className="text-gray-600 mt-2 md:mt-0">{reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}</span>
+              </div>
+
+              {/* Review Form */}
+              <div className="bg-amber-50 rounded-xl p-6 mb-8">
+                <h3 className="text-xl font-semibold mb-4 text-gray-800">Share your experience</h3>
+                
+                {submitSuccess && (
+                  <div className="mb-4 p-4 bg-green-100 border border-green-200 rounded-lg text-green-700">
+                    Thank you for your review! It has been submitted successfully.
                   </div>
-                  
+                )}
+                
+                {submitError && (
+                  <div className="mb-4 p-4 bg-red-100 border border-red-200 rounded-lg text-red-700">
+                    {submitError}
+                  </div>
+                )}
+                
+                <form onSubmit={handleSubmitReview} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Your Rating
                     </label>
                     <StarRating 
@@ -514,9 +536,29 @@ const GuideProfileView = () => {
                       <p className="mt-1 text-sm text-red-600">{formErrors.rating}</p>
                     )}
                   </div>
+
+                  <div>
+                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                      Your Name
+                    </label>
+                    <input
+                      type="text"
+                      id="name"
+                      name="name"
+                      value={reviewForm.name}
+                      onChange={handleReviewChange}
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-amber-500 focus:border-amber-500 ${
+                        formErrors.name ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                      placeholder="Enter your name"
+                    />
+                    {formErrors.name && (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.name}</p>
+                    )}
+                  </div>
                   
                   <div>
-                    <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-2">
                       Your Review
                     </label>
                     <textarea
@@ -525,7 +567,7 @@ const GuideProfileView = () => {
                       rows={4}
                       value={reviewForm.content}
                       onChange={handleReviewChange}
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500 ${
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-amber-500 focus:border-amber-500 ${
                         formErrors.content ? 'border-red-500' : 'border-gray-300'
                       }`}
                       placeholder="Share your experience with this guide..."
@@ -538,7 +580,7 @@ const GuideProfileView = () => {
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:bg-blue-400 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    className="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-[1.02] disabled:bg-amber-400 disabled:cursor-not-allowed"
                   >
                     {submitting ? (
                       <span className="flex items-center justify-center">
@@ -550,23 +592,23 @@ const GuideProfileView = () => {
                       </span>
                     ) : 'Submit Review'}
                   </button>
-                </div>
-              </form>
-            </div>
+                </form>
+              </div>
 
-            {/* Reviews List */}
-            {reviews.length === 0 ? (
-              <div className="bg-white rounded-lg shadow p-6 text-center">
-                <p className="text-gray-500">No reviews yet. Be the first to review this guide!</p>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {reviews.map(review => (
-                  <ReviewCard key={review._id} review={review} />
-                ))}
-              </div>
-            )}
-          </section>
+              {/* Reviews List */}
+              {reviews.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">No reviews yet. Be the first to review this guide!</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {reviews.map(review => (
+                    <ReviewCard key={review._id} review={review} />
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
         </div>
       </div>
     </div>
