@@ -7,6 +7,7 @@ interface SignupProps {
   setIsEmailVerified: (value: boolean) => void;
 }
 
+
 const Signup: React.FC<SignupProps> = ({ setIsAuthenticated }) => {
   const [formData, setFormData] = useState({
     username: '',

@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Swiper, SwiperSlide } from 'swiper/react';
-import 'swiper/css';
-import 'swiper/css/autoplay';
 import SwiperCore from 'swiper';
 import { Autoplay } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/autoplay';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import Footer from '../components/Footer';
 import Hero from '../components/Hero';
@@ -229,7 +229,7 @@ const CityPage: React.FC = () => {
                     <div key={trip._id} className="rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow h-110 bg-white group">
                       <div className="relative h-60 overflow-hidden">
                         <img
-                          src={trip.imageURL || '/group.jpg'}
+                          src={trip.imageUrl || '/group.jpg'}
                           alt={trip.title}
                           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                           onError={(e) => {
