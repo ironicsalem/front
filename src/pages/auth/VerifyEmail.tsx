@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import AuthService, { VerifyEmailData } from "../../services/AuthService";
 
 interface VerifyEmailProps {
   setIsEmailVerified: (value: boolean) => void;
@@ -21,20 +21,23 @@ const VerifyEmail: React.FC<VerifyEmailProps> = ({ setIsEmailVerified }) => {
     setSuccess("");
 
     const email = localStorage.getItem("email");
-    console.log(email);
+    
     if (!email) {
-      setError("No email found. Please register again.");
+      setError("No email found. Please register or request password reset again.");
       setIsLoading(false);
       return;
     }
 
     try {
-      const response = await axios.post("http://localhost:5000/auth/verify-email", {
+      const verifyData: VerifyEmailData = {
         email,
-        code,
-      });
+        code
+      };
 
-      setSuccess(response.data.message || "Email verified successfully!");
+      // Call the verifyEmail method from AuthService
+      const response = await AuthService.verifyEmail(verifyData);
+
+      setSuccess(response.message || "Email verified successfully!");
 
       // Set email verified to true after successful verification
       setIsEmailVerified(true);
@@ -42,12 +45,32 @@ const VerifyEmail: React.FC<VerifyEmailProps> = ({ setIsEmailVerified }) => {
       setTimeout(() => {
         navigate("/account");
       }, 1500);
-    } catch (err: any) {
-      if (err.response?.data?.error) {
-        setError(err.response.data.error);
-      } else {
-        setError("Verification failed. Please try again.");
-      }
+    } catch (error) {
+      const err = error as Error;
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    const email = localStorage.getItem("email");
+    
+    if (!email) {
+      setError("No email found. Please register or request password reset again.");
+      return;
+    }
+
+    setIsLoading(true);
+    setError("");
+
+    try {
+      // Call the resendVerificationEmail method from AuthService
+      const response = await AuthService.resendVerificationEmail(email);
+      setSuccess(response.message || "Verification code has been resent to your email.");
+    } catch (error) {
+      const err = error as Error;
+      setError(err.message);
     } finally {
       setIsLoading(false);
     }
@@ -104,6 +127,17 @@ const VerifyEmail: React.FC<VerifyEmailProps> = ({ setIsEmailVerified }) => {
           >
             {isLoading ? "Verifying..." : "Verify Email"}
           </button>
+          
+          <div className="mt-4 text-center">
+            <button
+              type="button"
+              onClick={handleResendCode}
+              disabled={isLoading}
+              className="text-orange-500 hover:underline font-medium"
+            >
+              Resend verification code
+            </button>
+          </div>
         </form>
       </div>
     </div>

@@ -31,7 +31,7 @@ const ApplyForm = () => {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const API_URL = 'http://localhost:5000';
+  const API_URL = 'http://localhost:3000';
 
   const addItem = (list: string[], setList: React.Dispatch<React.SetStateAction<string[]>>, item: string, clear: () => void) => {
     if (item && !list.includes(item)) {

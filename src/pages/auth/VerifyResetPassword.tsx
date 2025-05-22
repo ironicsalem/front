@@ -1,12 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import AuthService, { VerifyResetCodeData } from "../../services/AuthService";
 
-interface VerifyEmailProps {
-  setIsEmailVerified: (value: boolean) => void;
-}
 
-const VerifyEmail: React.FC<VerifyEmailProps> = ({ setIsEmailVerified }) => {
+const VerifyResetPassword: React.FC = () => {
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -21,33 +18,34 @@ const VerifyEmail: React.FC<VerifyEmailProps> = ({ setIsEmailVerified }) => {
     setSuccess("");
 
     const email = localStorage.getItem("email");
-
+    
     if (!email) {
-      setError("No email found. Please register again.");
+      setError("No email found. Please request password reset again.");
       setIsLoading(false);
       return;
     }
 
     try {
-      const response = await axios.post("http://localhost:5000/auth/verify-email", {
+      const verifyData: VerifyResetCodeData = {
         email,
-        code,
-      });
+        code
+      };
 
-      setSuccess(response.data.message || "Email verified successfully!");
+      // Call the verifyResetCode method from AuthService
+      const response = await AuthService.verifyResetCode(verifyData);
 
-      // Set email verified to true after successful verification
-      setIsEmailVerified(true);
+      setSuccess(response.message || "Reset code verified successfully!");
 
-      setTimeout(() => {
-        navigate("/reset-password");
-      }, 1500);
-    } catch (err: any) {
-      if (err.response?.data?.error) {
-        setError(err.response.data.error);
-      } else {
-        setError("Verification failed. Please try again.");
+      // Navigate to reset password with the token
+      if (response.valid) {
+        setTimeout(() => {
+          // In a real app, you would get a token from the response and pass it
+          navigate(`/reset-password?email=${email}`);
+        }, 1500);
       }
+    } catch (error) {
+      const err = error as Error;
+      setError(err.message);
     } finally {
       setIsLoading(false);
     }
@@ -66,7 +64,7 @@ const VerifyEmail: React.FC<VerifyEmailProps> = ({ setIsEmailVerified }) => {
         </div>
 
         <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">
-          Verify Your Email
+          Verify Reset Code
         </h2>
 
         {error && (
@@ -84,14 +82,14 @@ const VerifyEmail: React.FC<VerifyEmailProps> = ({ setIsEmailVerified }) => {
         <form onSubmit={handleVerify}>
           <div className="mb-4">
             <label htmlFor="code" className="block text-gray-500 mb-2">
-              Verification Code
+              Reset Code
             </label>
             <input
               type="text"
               id="code"
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              placeholder="Enter your verification code"
+              placeholder="Enter the reset code from your email"
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
               required
             />
@@ -99,17 +97,28 @@ const VerifyEmail: React.FC<VerifyEmailProps> = ({ setIsEmailVerified }) => {
 
           <button
             type="submit"
-            onClick={() => navigate('/reset-password')}
-
             disabled={isLoading}
             className={`w-full ${isLoading ? "bg-orange-400" : "bg-orange-500 hover:bg-orange-600"} text-white py-2 px-4 rounded-md transition duration-300`}
           >
-            {isLoading ? "Verifying..." : "Verify Email"}
+            {isLoading ? "Verifying..." : "Verify Code"}
           </button>
+          
+          <div className="text-center mt-6">
+            <a 
+              href="#" 
+              className="text-orange-500 hover:underline font-medium"
+              onClick={(e) => {
+                e.preventDefault();
+                navigate('/forgot-password');
+              }}
+            >
+              Resend reset code
+            </a>
+          </div>
         </form>
       </div>
     </div>
   );
 };
 
-export default VerifyEmail;
+export default VerifyResetPassword;

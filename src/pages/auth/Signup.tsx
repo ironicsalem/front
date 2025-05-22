@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { registerUser } from '../services/authService';
+import AuthService, { SignUpData } from '../../services/AuthService';
 
 interface SignupProps {
   setIsAuthenticated: (value: boolean) => void;
   setIsEmailVerified: (value: boolean) => void;
 }
 
-const Signup: React.FC<SignupProps> = ({ setIsAuthenticated }) => {
+const Signup: React.FC<SignupProps> = ({ setIsAuthenticated, setIsEmailVerified }) => {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -57,40 +57,27 @@ const Signup: React.FC<SignupProps> = ({ setIsAuthenticated }) => {
     }
     
     try {
-      // Call the register function from our auth service
-      await registerUser({
+      const signUpData: SignUpData = {
         username: formData.username,
         email: formData.email,
         password: formData.password
-      });
-      
-      // Update authentication state
-      localStorage.setItem("isAuthenticated", "true");
-      setIsAuthenticated(true);
-            
-      // Redirect to account page after successful registration
-      navigate('/verify-email');
-    } catch (error) {
-      const err = error as {
-        response?: { 
-          data?: { 
-            error?: string 
-          } 
-        },
-        request?: unknown
       };
+
+      // Call the signUp method from our AuthService
+      const response = await AuthService.signUp(signUpData);
       
-      if (err.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
-        setError(err.response.data?.error || 'Registration failed. Please try again.');
-      } else if (err.request) {
-        // The request was made but no response was received
-        setError('Server not responding. Please try again later.');
-      } else {
-        // Something happened in setting up the request that triggered an Error
-        setError('An unexpected error occurred. Please try again.');
+      if (response.token) {
+        setIsAuthenticated(true);
+        // Set email verification status (should be false for new accounts)
+        setIsEmailVerified(false);
+        // Store email for verification
+        localStorage.setItem("email", formData.email);
+        // Redirect to email verification page
+        navigate('/verify-email');
       }
+    } catch (error) {
+      const err = error as Error;
+      setError(err.message);
     } finally {
       setIsLoading(false);
     }

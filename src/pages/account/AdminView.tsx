@@ -1,11 +1,30 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import AuthService from '../../services/AuthService';
+import { User } from '../../types/User';
 
-interface User {
-  _id: string;
-  name: string;
-  email: string;
-}
+const API_URL = 'http://localhost:3000';
+
+// Create axios instance for admin-specific endpoints
+const adminApi = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Add auth token to all requests
+adminApi.interceptors.request.use(
+  (config) => {
+    const token = AuthService.getToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 interface GuideApplication {
   _id: string;
@@ -19,68 +38,100 @@ interface GuideApplication {
   createdAt?: string;
 }
 
-const API_URL = 'http://localhost:5000';
-
-const AdminView = () => {
+const AdminView: React.FC = () => {
   const [applications, setApplications] = useState<GuideApplication[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [user, setUser] = useState<User | null>(null); 
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchUser = async (): Promise<void> => {
       try {
-        const token = localStorage.getItem('authToken');
-        const response = await axios.get(`${API_URL}/auth/verify`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-        console.log(response.data.user);
-        setUser(response.data.user); 
+        if (!AuthService.isAuthenticated()) {
+          navigate('/login');
+          return;
+        }
+
+        // Use AuthService to get current user
+        const userData = await AuthService.getCurrentUser();
+        setUser(userData);
+        
+        // Check if user is admin
+        if (userData.role !== 'admin') {
+          setError('Access denied. Admin privileges required.');
+          return;
+        }
+        
       } catch (error) {
         console.error('Error fetching user:', error);
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+          AuthService.signOut();
+          navigate('/login');
+        } else {
+          setError('Failed to verify user permissions.');
+        }
       }
     };
 
     fetchUser();
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
-    const fetchApplications = async () => {
+    const fetchApplications = async (): Promise<void> => {
+      if (!user || user.role !== 'admin') return;
+
       try {
         setIsLoading(true);
-        const token = localStorage.getItem('authToken');
-        const res = await axios.get(`${API_URL}/admin/applications`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        console.log(res.data);
-        setApplications(res.data);
+        setError(null);
+        
+        const response = await adminApi.get('/admin/applications');
+        setApplications(response.data || []);
       } catch (error) {
         console.error('Failed to fetch applications:', error);
+        if (axios.isAxiosError(error)) {
+          if (error.response?.status === 401) {
+            AuthService.signOut();
+            navigate('/login');
+          } else if (error.response?.status === 403) {
+            setError('Access denied. Admin privileges required.');
+          } else {
+            setError(error.response?.data?.message || 'Failed to fetch applications.');
+          }
+        } else {
+          setError('Network error occurred.');
+        }
       } finally {
         setIsLoading(false);
       }
     };
-    fetchApplications();
-  }, []);
 
-  const handleStatusChange = async (id: string, status: 'approved' | 'rejected') => {
+    fetchApplications();
+  }, [user, navigate]);
+
+  const handleStatusChange = async (id: string, status: 'approved' | 'rejected'): Promise<void> => {
     try {
-      const token = localStorage.getItem('authToken');
-      await axios.patch(
-        `${API_URL}/admin/applications/${id}/${status}`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await adminApi.patch(`/admin/applications/${id}/${status}`);
+      
       setApplications(prev => prev.map(app =>
         app._id === id ? { ...app, status } : app
       ));
     } catch (error) {
       console.error('Status change failed:', error);
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 401) {
+          AuthService.signOut();
+          navigate('/login');
+        } else {
+          alert(error.response?.data?.message || `Failed to ${status} application.`);
+        }
+      } else {
+        alert('Network error occurred.');
+      }
     }
   };
 
-  const formatDate = (dateString?: string) => {
+  const formatDate = (dateString?: string): string => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -92,9 +143,35 @@ const AdminView = () => {
     });
   };
 
+  // Show loading state while checking user permissions
+  if (!user) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
+      </div>
+    );
+  }
+
+  // Show error if user doesn't have admin privileges or other errors
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
+          <h3 className="text-xl font-medium text-red-800 mb-2">Access Error</h3>
+          <p className="text-red-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <h2 className="text-3xl font-bold text-gray-800 mb-8">Guide Applications</h2>
+      <div className="flex justify-between items-center mb-8">
+        <h2 className="text-3xl font-bold text-gray-800">Guide Applications</h2>
+        <div className="text-sm text-gray-500">
+          Welcome, {user.name}
+        </div>
+      </div>
       
       {isLoading ? (
         <div className="flex justify-center items-center h-64">
@@ -164,7 +241,7 @@ const AdminView = () => {
                           <img 
                             src={application.nationalIdPicture} 
                             alt="National ID" 
-                            className="h-32 w-auto rounded-md border border-gray-200 object-cover"
+                            className="h-32 w-auto rounded-md border border-gray-200 object-cover hover:opacity-80 transition-opacity"
                           />
                         </a>
                       </div>
@@ -179,7 +256,7 @@ const AdminView = () => {
                           <img 
                             src={application.behavioralCertificate} 
                             alt="Behavioral Certificate" 
-                            className="h-32 w-auto rounded-md border border-gray-200 object-cover"
+                            className="h-32 w-auto rounded-md border border-gray-200 object-cover hover:opacity-80 transition-opacity"
                           />
                         </a>
                       </div>
@@ -196,13 +273,13 @@ const AdminView = () => {
                     <div className="space-x-3">
                       <button
                         onClick={() => handleStatusChange(application._id, 'approved')}
-                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
                       >
                         Approve Application
                       </button>
                       <button
                         onClick={() => handleStatusChange(application._id, 'rejected')}
-                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
                       >
                         Reject Application
                       </button>

@@ -40,7 +40,7 @@ const CityPage: React.FC = () => {
   const visibleGuides = guides.slice(currentGuidesGroup * 3, currentGuidesGroup * 3 + 3);
   const visibleTrips = trips.slice(currentTripsGroup * 3, currentTripsGroup * 3 + 3);
 
-  const API_URL = 'http://localhost:5000';
+  const API_URL = 'http://localhost:3000';
 
   useEffect(() => {
     window.scrollTo(0, 0);

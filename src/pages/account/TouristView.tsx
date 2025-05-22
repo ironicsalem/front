@@ -1,7 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-const API_URL = 'http://localhost:5000';
+import AuthService from '../../services/AuthService';
+
+const API_URL = 'http://localhost:3000';
+
+// Create axios instance for tourist-specific endpoints
+const touristApi = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Add auth token to all requests
+touristApi.interceptors.request.use(
+  (config) => {
+    const token = AuthService.getToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 interface Application {
   _id: string;
@@ -12,38 +34,34 @@ interface Application {
   feedback?: string;
 }
 
-const TouristView = () => {
+const TouristView: React.FC = () => {
   const navigate = useNavigate();
   const [application, setApplication] = useState<Application | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchApplication = async () => {
+    const fetchApplication = async (): Promise<void> => {
       try {
-        const token = localStorage.getItem('authToken');
-        if (!token) {
+        // Check if user is authenticated
+        if (!AuthService.isAuthenticated()) {
           navigate('/login');
           return;
         }
 
-        const response = await axios.get(`${API_URL}/tourist/applications/myApplication`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        console.log("hello");
-
+        const response = await touristApi.get('/tourist/applications/myApplication');
         setApplication(response.data);
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (axios.isAxiosError(err)) {
           if (err.response?.status === 404) {
-
             setApplication(null);
           } else if (err.response?.status === 401) {
             setError('Session expired. Please log in again.');
+            // Clear token and redirect to login
+            AuthService.signOut();
+            navigate('/login');
           } else {
-            setError('Failed to load application.');
+            setError(err.response?.data?.message || 'Failed to load application.');
           }
         } else {
           setError('Connection error.');
@@ -56,8 +74,7 @@ const TouristView = () => {
     fetchApplication();
   }, [navigate]);
 
-
-  const renderStatusCard = () => {
+  const renderStatusCard = (): React.ReactElement | null => {
     if (!application) return null;
 
     const statusConfig = {
@@ -96,6 +113,18 @@ const TouristView = () => {
     );
   };
 
+  const handleRetry = (): void => {
+    window.location.reload();
+  };
+
+  const handleNavigateToApply = (): void => {
+    navigate('/apply');
+  };
+
+  const handleNavigateToTrips = (): void => {
+    navigate('/trips');
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -117,7 +146,7 @@ const TouristView = () => {
           <h3 className="text-2xl font-bold mb-3">Oops!</h3>
           <p className="text-gray-600 mb-6">{error}</p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={handleRetry}
             className="px-6 py-3 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-lg font-medium hover:shadow-md transition-all"
           >
             Try Again
@@ -165,7 +194,7 @@ const TouristView = () => {
               <h3 className="text-xl font-bold text-gray-800 mb-2">Become a Guide</h3>
               <p className="text-gray-600 mb-4">Share your unique perspective and earn money showing travelers around</p>
               <button
-                onClick={() => navigate('/apply')}
+                onClick={handleNavigateToApply}
                 className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-white px-6 py-3 rounded-lg font-medium hover:shadow-md transition-all"
               >
                 Apply to Guide
@@ -179,7 +208,7 @@ const TouristView = () => {
               <h3 className="text-xl font-bold text-gray-800 mb-2">Explore Trips</h3>
               <p className="text-gray-600 mb-4">Discover authentic experiences with our local guides</p>
               <button
-                onClick={() => navigate('/trips')}
+                onClick={handleNavigateToTrips}
                 className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:shadow-md transition-all"
               >
                 Browse Trips

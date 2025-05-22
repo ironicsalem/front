@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useParams } from 'react-router-dom';
 
-const API_URL = 'http://localhost:5000';
+const API_URL = 'http://localhost:3000';
 
 interface Guide {
   _id: string;

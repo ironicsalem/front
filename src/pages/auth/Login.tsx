@@ -1,21 +1,30 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { loginUser } from "../services/authService";
+import AuthService, { SignInData } from "../../services/AuthService";
 
 interface LoginProps {
   setIsAuthenticated: (value: boolean) => void;
   setIsEmailVerified: (value: boolean) => void;
-
 }
 
-const Login: React.FC<LoginProps> = ({ setIsAuthenticated }) => {
-  const [email, setEmail] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
+const Login: React.FC<LoginProps> = ({ setIsAuthenticated, setIsEmailVerified }) => {
+  const [credentials, setCredentials] = useState<SignInData>({
+    email: "",
+    password: ""
+  });
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
   const navigate = useNavigate();
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setCredentials(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,48 +32,21 @@ const Login: React.FC<LoginProps> = ({ setIsAuthenticated }) => {
     setError("");
 
     try {
-
-      await loginUser({ email, password });
-
-      setIsAuthenticated(true);
-      localStorage.setItem("isAuthenticated", "true");
+      const response = await AuthService.signIn(credentials);
       
-      // Give React time to update the state
-      setTimeout(() => {
-        navigate("/account");
-      }, 100); 
-      
-    } catch (error) {
-      // Handle different types of errors
-      const err = error as {
-        response?: {
-          data?: {
-            message?: string;
-            error?: string;
-          };
-          };
-        request?: unknown;
-     
-      };
-      if (err?.response?.data?.error === 'Email not verified.')
-      setTimeout(() => {
-      navigate('/verify-email');
-      }, 2000);
-
-      if (err.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
-        setError(
-          err.response.data?.message ||
-            "Login failed. Please check your credentials."
-        );
-      } else if (err.request) {
-        // The request was made but no response was received
-        setError("Server not responding. Please try again later.");
-      } else {
-        // Something happened in setting up the request that triggered an Error
-        setError("An unexpected error occurred. Please try again.");
+      if (response.token) {
+        setIsAuthenticated(true);
+        if (response.user?.verified) {
+          setIsEmailVerified(true);
+          navigate("/account");
+        } else {
+          localStorage.setItem("email", credentials.email);
+          navigate("/verify-email");
+        }
       }
+    } catch (error) {
+      const err = error as Error;
+      setError(err.message);
     } finally {
       setIsLoading(false);
     }
@@ -109,8 +91,9 @@ const Login: React.FC<LoginProps> = ({ setIsAuthenticated }) => {
             <input
               type="email"
               id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              name="email"
+              value={credentials.email}
+              onChange={handleChange}
               placeholder="Enter your email address"
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
               required
@@ -126,8 +109,9 @@ const Login: React.FC<LoginProps> = ({ setIsAuthenticated }) => {
               <input
                 type={showPassword ? "text" : "password"}
                 id="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                name="password"
+                value={credentials.password}
+                onChange={handleChange}
                 placeholder="Enter your password"
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                 required
@@ -193,7 +177,6 @@ const Login: React.FC<LoginProps> = ({ setIsAuthenticated }) => {
               }}
             >
               Forgot your password?
-              
             </a>
           </div>
 
@@ -202,7 +185,7 @@ const Login: React.FC<LoginProps> = ({ setIsAuthenticated }) => {
             type="submit"
             disabled={isLoading}
             className={`w-full ${
-              isLoading ? "bg-orange-400" :"bg-amber-600 hover:bg-amber-700"
+              isLoading ? "bg-orange-400" : "bg-amber-600 hover:bg-amber-700"
             } text-white py-2 px-4 rounded-md transition duration-300`}
           >
             {isLoading ? "Signing In..." : "Sign In"}

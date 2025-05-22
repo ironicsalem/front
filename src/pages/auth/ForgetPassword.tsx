@@ -1,20 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-
-// API URL from your auth service
-const API_URL = 'http://localhost:5000';
-
-interface ForgotPasswordState {
-  email: string;
-  resetSent: boolean;
-  isLoading: boolean;
-  error: string;
-  success: string;
-}
+import AuthService, { ResetPasswordData } from '../../services/AuthService';
 
 const ForgotPassword: React.FC = () => {
-  const [state, setState] = useState<ForgotPasswordState>({
+  const [state, setState] = useState({
     email: '',
     resetSent: false,
     isLoading: false,
@@ -41,37 +30,29 @@ const ForgotPassword: React.FC = () => {
     });
 
     try {
-      // Call API to request password reset
-      await axios.post(`${API_URL}/auth/forgot-password`, { email: state.email });
+      const resetData: ResetPasswordData = {
+        email: state.email
+      };
+      
+      // Call the forgotPassword method from AuthService
+      const response = await AuthService.forgotPassword(resetData);
+      
+      // Store email for verification
+      localStorage.setItem("email", state.email);
       
       setState({
         ...state,
         resetSent: true,
         isLoading: false,
-        success: 'Password reset code has been sent to your email address.',
+        success: response.message || 'Password reset code has been sent to your email address.',
       });
     } catch (error) {
-      const err = error as {
-        response?: { 
-          data?: { 
-            message?: string 
-          } 
-        },
-        request?: unknown
-      };
-      
-      let errorMessage = 'An unexpected error occurred. Please try again.';
-      
-      if (err.response) {
-        errorMessage = err.response.data?.message || 'Failed to send password reset email. Please try again.';
-      } else if (err.request) {
-        errorMessage = 'Server not responding. Please try again later.';
-      }
+      const err = error as Error;
       
       setState({
         ...state,
         isLoading: false,
-        error: errorMessage,
+        error: err.message,
       });
     }
   };
@@ -132,7 +113,6 @@ const ForgotPassword: React.FC = () => {
             </div>
             
             <button
-              onClick={() => navigate('/verify-reset-password')}
               type="submit"
               disabled={state.isLoading}
               className={`w-full ${state.isLoading ? 'bg-orange-400' : 'bg-orange-500 hover:bg-orange-600'} text-white py-2 px-4 rounded-md transition duration-300`}
@@ -143,10 +123,10 @@ const ForgotPassword: React.FC = () => {
         ) : (
           <div className="mt-6">
             <button
-              onClick={() => navigate('/login')}
+              onClick={() => navigate('/verify-reset-password')}
               className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded-md transition duration-300"
             >
-              Back to Login
+              Verify Reset Code
             </button>
           </div>
         )}

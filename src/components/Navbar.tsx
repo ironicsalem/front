@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import logo from '/logo.svg';
-import { logoutUser } from '../services/authService';
+import AuthService from '../services/AuthService';
+import { User } from '../types/User';
 
 interface NavbarProps {
   isScrolled: boolean
@@ -10,14 +11,30 @@ interface NavbarProps {
 }
 
 const Navbar = ({ isScrolled, isAuthenticated, setIsAuthenticated }: NavbarProps) => {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-  const navigate = useNavigate()
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (isAuthenticated) {
+        try {
+          const userData = await AuthService.getCurrentUser();
+          setCurrentUser(userData);
+        } catch (error) {
+          console.error('Error fetching user data:', error);
+        }
+      }
+    };
+
+    fetchUserData();
+  }, [isAuthenticated]);
 
   const handleLogout = async () => {
     try {
-      await logoutUser();
-      localStorage.removeItem('authToken');
+      await AuthService.signOut();
       setIsAuthenticated(false);
+      setCurrentUser(null);
       setIsDropdownOpen(false);
       navigate('/');
     } catch (error) {
@@ -109,17 +126,28 @@ const Navbar = ({ isScrolled, isAuthenticated, setIsAuthenticated }: NavbarProps
                     onMouseLeave={() => setIsDropdownOpen(false)}
                   >
                     <Link 
-                      to="/account/messages" 
+                      to="/account" 
                       className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
                     >
-                      Messages
+                      Account Settings
                     </Link>
+                    
+                    {currentUser && currentUser.role === 'guide' && (
+                      <Link 
+                        to="/account/trips" 
+                        className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                      >
+                        My Trips
+                      </Link>
+                    )}
+                    
                     <Link 
-                      to="/account/trips" 
+                      to="/account/bookings" 
                       className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
                     >
-                      My Trips
+                      My Bookings
                     </Link>
+                    
                     <button
                       onClick={handleLogout}
                       className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"

@@ -1,61 +1,46 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
-import  {useNavigate}  from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import GuideView from './GuideView';
 import AdminView from './AdminView';
 import TouristView from './TouristView';
-
-interface User {
-  _id: string;
-  email: string;
-  name: string;
-  phone: string;
-  profilePicture: string;
-}
-
-interface UserFormData {
-  email: string;
-  name: string;
-  phone: string;
-}
+import AuthService from '../../services/AuthService';
+import UserService, { ProfileUpdateData } from '../../services/UserService';
+import { User } from '../../types/User';
 
 interface Notification {
   message: string;
   type: 'success' | 'error';
 }
 
-const API_URL = 'http://localhost:5000';
-
 const Account = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
-  const [formData, setFormData] = useState<UserFormData>({ email: '', name: '', phone: '' });
+  const [formData, setFormData] = useState<ProfileUpdateData>({ email: '', name: '', phone: '' });
   const [isEditing, setIsEditing] = useState(false);
   const [notification, setNotification] = useState<Notification | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [role, setRole] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const token = localStorage.getItem('authToken');
-        if (!token) throw new Error('No authentication token found');
+        
+        // Check if user is authenticated
+        if (!AuthService.isAuthenticated()) {
+          throw new Error('Not authenticated');
+        }
 
-        // Fetch user data
-        const userResponse = await axios.get(`${API_URL}/auth/verify`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setRole(userResponse.data.user.role);
-        setUser(userResponse.data.user);
+        // Fetch current user data
+        const userData = await AuthService.getCurrentUser();
+        setUser(userData);
         setFormData({
-          email: userResponse.data.user.email,
-          name: userResponse.data.user.name,
-          phone: userResponse.data.user.phone,
+          email: userData.email,
+          name: userData.name,
+          phone: userData.phone || '',
         });
-
       } catch (error) {
+        console.error('Failed to load user data:', error);
         setNotification({ message: 'Failed to load data', type: 'error' });
         navigate('/login');
       } finally {
@@ -75,19 +60,13 @@ const Account = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
-      if (!token) throw new Error('No authentication token found');
-
-      const response = await axios.put(
-        `${API_URL}/user/update-profile`,
-        { ...formData },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      
-      setUser(response.data);
+      // Use UserService to update profile
+      const updatedUser = await UserService.updateProfile(formData);
+      setUser(updatedUser);
       setNotification({ message: 'Profile updated successfully', type: 'success' });
       setIsEditing(false);
-    } catch {
+    } catch (error) {
+      console.error('Update profile error:', error);
       setNotification({ message: 'Failed to update profile', type: 'error' });
     } finally {
       setIsLoading(false);
@@ -106,23 +85,14 @@ const Account = () => {
     formData.append('profilePicture', file);
 
     try {
-      const token = localStorage.getItem('authToken');
-      if (!token) throw new Error('No authentication token found');
+      // Use UserService to upload profile picture
+      const response = await UserService.uploadProfilePicture(formData);
       
-      const response = await axios.post(
-        `${API_URL}/user/upload-profile-picture`, 
-        formData, 
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data',
-          },
-        }
-      );
-      
-      setUser(prev => prev ? { ...prev, profilePicture: response.data.profilePicture } : null);
+      // Update user state with new profile picture URL
+      setUser(prev => prev ? { ...prev, profilePicture: response.profilePicture } : null);
       setNotification({ message: 'Profile picture updated', type: 'success' });
-    } catch {
+    } catch (error) {
+      console.error('Upload profile picture error:', error);
       setNotification({ message: 'Failed to upload picture', type: 'error' });
     }
   };
@@ -264,9 +234,9 @@ const Account = () => {
     </div>
   </div>
   
-  {role === 'guide' && <GuideView />}
-  {role === 'admin' && <AdminView />}
-  {role === 'tourist' && <TouristView />}
+  {user?.role === 'guide' && <GuideView />}
+  {user?.role === 'admin' && <AdminView />}
+  {user?.role === 'tourist' && <TouristView />}
 </div>
   );
 };

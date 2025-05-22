@@ -149,48 +149,57 @@ const CreateTrip: React.FC = () => {
     try {
       setLoading(true);
       
-      // Create form data
+      // Set title if not provided
+      if (!tripData.title) {
+        tripData.title = `${tripData.city} Trip`;
+      }
+      
+      // Create FormData object to handle file upload
       const formData = new FormData();
-      formData.append('title', tripData.title || `${tripData.city} Trip`);
+      
+      // Append all trip data to FormData
+      formData.append('title', tripData.title);
       formData.append('city', tripData.city);
       formData.append('price', tripData.price.toString());
       formData.append('description', tripData.description);
       formData.append('type', tripData.type);
+      
+      // Convert schedule array to JSON string
       formData.append('schedule', JSON.stringify(tripData.schedule));
+      
+      // Convert path array to JSON string
       formData.append('path', JSON.stringify(tripData.path));
       
+      // Add image if available
       if (tripData.image) {
         formData.append('image', tripData.image);
       }
-  
-      // Make the API call
-      const response = await axios.post('http://localhost:5000/trip/create', formData, {
+      
+      // Make API call to create trip
+      const response = await axios.post('http://localhost:3000/trip', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          // Include authorization if your auth token is stored in localStorage/sessionStorage
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
       
-      // Handle success...
+      console.log('Trip created:', response.data);
+      toast.success('Trip created successfully!');
+      navigate('/trips');
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error creating trip:', error);
       if (axios.isAxiosError(error)) {
-        if (error.response) {
-          console.log('Server responded with:', error.response.status);
-          console.log('Response data:', error.response.data);
-        } else if (error.request) {
-          console.log('No response received:', error.request);
-        } else {
-          console.log('Request setup error:', error.message);
-        }
-        toast.error(error.response?.data?.message || 'Failed to create trip');
+        const errorMessage = error.response?.data?.message || 'Failed to create trip';
+        toast.error(errorMessage);
       } else {
-        toast.error('An unexpected error occurred');
+        toast.error('Failed to create trip. Please try again.');
       }
     } finally {
       setLoading(false);
     }
   };
+
   // Render the current step
   const renderStep = () => {
     switch (currentStep) {

@@ -1,8 +1,30 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import AuthService from '../../services/AuthService';
+import { User } from '../../types/User';
 
-const API_URL = 'http://localhost:5000';
+const API_URL = 'http://localhost:3000';
+
+// Create axios instance for guide-specific endpoints
+const guideApi = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Add auth token to all requests
+guideApi.interceptors.request.use(
+  (config) => {
+    const token = AuthService.getToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 interface Post {
   _id: string;
@@ -21,12 +43,6 @@ interface NewPostState {
   title: string;
   content: string;
   images: PostImage[];
-}
-
-interface User {
-  _id: string;
-  name: string;
-  profilePicture?: string;
 }
 
 interface Trip {
@@ -50,87 +66,107 @@ interface Review {
   createdAt: string;
 }
 
-const GuideView = () => {
+const GuideView: React.FC = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [newPost, setNewPost] = useState<NewPostState>({ title: '', content: '', images: [] });
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [user, setUser] = useState<User | null>(null);
   const [trips, setTrips] = useState<Trip[]>([]);
-  const [isLoadingTrips, setIsLoadingTrips] = useState(false);
+  const [isLoadingTrips, setIsLoadingTrips] = useState<boolean>(false);
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [isLoadingReviews, setIsLoadingReviews] = useState(false);
+  const [isLoadingReviews, setIsLoadingReviews] = useState<boolean>(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchUser = async (): Promise<void> => {
       try {
-        const token = localStorage.getItem('authToken');
-        const response = await axios.get(`${API_URL}/auth/verify`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-        setUser(response.data.user);
+        if (!AuthService.isAuthenticated()) {
+          navigate('/login');
+          return;
+        }
+
+        // Use AuthService to get current user
+        const userData = await AuthService.getCurrentUser();
+        setUser(userData);
         
-        fetchTrips(response.data.user._id);
-        fetchReviews(response.data.user._id);
+        // Fetch guide-specific data
+        await Promise.all([
+          fetchTrips(userData._id),
+          fetchReviews(userData._id)
+        ]);
         
       } catch (error) {
         console.error('Error fetching user:', error);
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+          AuthService.signOut();
+          navigate('/login');
+        }
       }
     };
 
-    const fetchTrips = async (userId: string) => {
+    const fetchTrips = async (userId: string): Promise<void> => {
       setIsLoadingTrips(true);
       try {
-        const tripsResponse = await axios.get(`${API_URL}/guide/${userId}/trips`);
-        console.log(tripsResponse.data);
-        setTrips(tripsResponse.data || []);
+        const response = await guideApi.get(`/guide/${userId}/trips`);
+        setTrips(response.data || []);
       } catch (error) {
         console.error('Error fetching trips:', error);
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+          AuthService.signOut();
+          navigate('/login');
+        }
       } finally {
         setIsLoadingTrips(false);
       }
     };
 
-    const fetchReviews = async (guideId: string) => {
+    const fetchReviews = async (guideId: string): Promise<void> => {
       setIsLoadingReviews(true);
       try {
-        const response = await axios.get(`${API_URL}/guide/${guideId}/reviews`);
+        const response = await guideApi.get(`/guide/${guideId}/reviews`);
         setReviews(response.data.reviews || []);
       } catch (error) {
         console.error('Error fetching reviews:', error);
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+          AuthService.signOut();
+          navigate('/login');
+        }
       } finally {
         setIsLoadingReviews(false);
       }
     };
 
     fetchUser();
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
-    const fetchPosts = async () => {
+    const fetchPosts = async (): Promise<void> => {
+      if (!AuthService.isAuthenticated()) {
+        navigate('/login');
+        return;
+      }
+
       setIsLoading(true);
       try {
-        const response = await axios.get(`${API_URL}/guide/posts`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('authToken')}`
-          }
-        });
+        const response = await guideApi.get('/guide/posts');
         setPosts(response.data || []);
       } catch (error) {
         console.error('Error fetching posts:', error);
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+          AuthService.signOut();
+          navigate('/login');
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchPosts();
-  }, []);
+  }, [navigate]);
 
-  const handleAddPost = async (e: React.FormEvent) => {
+  const handleAddPost = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
-    if (!newPost.title) return;
+    if (!newPost.title.trim()) return;
 
     const formData = new FormData();
     formData.append('title', newPost.title);
@@ -141,9 +177,8 @@ const GuideView = () => {
 
     try {
       setIsLoading(true);
-      const response = await axios.post(`${API_URL}/guide/addPost`, formData, {
+      const response = await guideApi.post('/guide/addPost', formData, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('authToken')}`,
           'Content-Type': 'multipart/form-data',
         },
       });
@@ -152,23 +187,29 @@ const GuideView = () => {
       setNewPost({ title: '', content: '', images: [] });
     } catch (error) {
       console.error('Error adding post:', error);
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
+        AuthService.signOut();
+        navigate('/login');
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleDeletePost = async (postId: string) => {
+  const handleDeletePost = async (postId: string): Promise<void> => {
     try {
-      await axios.delete(`${API_URL}/guide/posts/${postId}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
-      });
+      await guideApi.delete(`/guide/posts/${postId}`);
       setPosts(posts.filter(post => post._id !== postId));
     } catch (error) {
       console.error('Error deleting post:', error);
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
+        AuthService.signOut();
+        navigate('/login');
+      }
     }
   };
 
-  const handleAddImages = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAddImages = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const files = e.target.files;
     if (!files) return;
 
@@ -185,11 +226,18 @@ const GuideView = () => {
     }));
   };
 
-  const removeImage = (index: number) => {
+  const removeImage = (index: number): void => {
+    // Cleanup object URL to prevent memory leaks
+    URL.revokeObjectURL(newPost.images[index].preview);
+    
     setNewPost(prev => ({
       ...prev,
       images: prev.images.filter((_, i) => i !== index),
     }));
+  };
+
+  const handleNavigateToAddTrip = (): void => {
+    navigate('/addtrip');
   };
 
   return (
@@ -290,7 +338,7 @@ const GuideView = () => {
 
                 <div className="p-4 flex items-center space-x-3 border-b">
                   <img
-                    src={user?.profilePicture || 'NoPic.jpg'}
+                    src={user?.profilePicture || '/NoPic.jpg'}
                     alt="Author"
                     className="w-8 h-8 rounded-full object-cover"
                   />
@@ -333,18 +381,18 @@ const GuideView = () => {
             ))}
           </div>
         )}
-
       </div>
 
-      {/* Available Trips */}
+      {/* Right Column - Available Trips and Reviews */}
       <div className="md:w-90 lg:w-96 space-y-6">
+        {/* Available Trips */}
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-xl font-bold mb-4">Your Available Trips</h2>
           <button
-            onClick={() => navigate('/addtrip')}
+            onClick={handleNavigateToAddTrip}
             className="bg-amber-500 hover:bg-amber-600 mb-5 text-white px-3 py-1 rounded-md text-sm"
           >
-          + Add Trip
+            + Add Trip
           </button>
           {isLoadingTrips ? (
             <div className="text-center py-4">
@@ -373,7 +421,7 @@ const GuideView = () => {
                     </div>
                     <div className="mt-2">
                       <button className="w-full bg-amber-500 hover:bg-amber-600 text-white text-sm py-1 rounded">
-                         Edit
+                        Edit
                       </button>
                     </div>
                   </div>
@@ -384,8 +432,8 @@ const GuideView = () => {
         </div>
         
         {/* Reviews Section */}
-        <div className="mt-8 bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-2xl font-bold mb-6">Your Reviews</h2>
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-2xl font-bold mb-6">Your Reviews</h2>
           
           {isLoadingReviews ? (
             <div className="text-center py-4">
@@ -426,7 +474,6 @@ const GuideView = () => {
           )}
         </div>
       </div>
-
     </div>
   );
 };
