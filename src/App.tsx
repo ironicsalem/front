@@ -22,11 +22,12 @@ import VerifyEmail from './pages/auth/VerifyEmail';
 import ApplyForm from './pages/ApplyForm';
 import GuidesApplications from "./pages/applicationHandling";
 import TripsPage from "./pages/Trips";
-import GuideProfileView from "./pages/GuideProfileView";
+import Guide from "./pages/Guide";
 import CreateTrip from "./pages/trip_creation/CreateTrip";
 import TripDetail from "./pages/TripDetail";
 import Booking from "./components/Booking";
 import Bookings from "./pages/account/Bookings";
+import MyProfile from "./pages/profile/MyProfile";
 
 // Services
 import AuthService from "./services/AuthService";
@@ -149,7 +150,7 @@ function App() {
             <Route path="/search" element={<SearchResults />} />
             <Route path="/city/:cityName" element={<CityOverview />} />
             <Route path="/trip/:id" element={<TripDetail />} />
-            <Route path="/guide/:guideId" element={<GuideProfileView />} />
+            <Route path="/guide/:guideId" element={<Guide />} />
 
             {/* Authentication routes */}
             <Route
@@ -211,9 +212,25 @@ function App() {
                 </ProtectedRoute>
               }
             >
-              <Route path="bookings" element={<Bookings />} />
-              {/* Add more nested routes like path="settings", path="profile", etc. */}
             </Route>
+            
+            <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute isAuthenticated={isAuthenticated}>
+                    <MyProfile />
+                  </ProtectedRoute>
+                }
+            />
+
+            <Route
+              path="/bookings"
+              element={
+                <ProtectedRoute isAuthenticated={isAuthenticated}>
+                  <Bookings />
+                </ProtectedRoute>
+              }
+            />
 
             <Route
               path="/addtrip"
