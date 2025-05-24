@@ -6,10 +6,25 @@ interface TripDetailsProps {
   tripData: TripData;
   updateTripData: (data: Partial<TripData>) => void;
 }
+const cities = [
+  { name: "Amman" },
+  { name: "Petra" },
+  { name: "Aqaba" },
+  { name: "Jerash" },
+  { name: "Madaba" },
+  { name: "Salt" },
+  { name: "Irbid" },
+  { name: "Zarqa" },
+  { name: "Karak" },
+  { name: "Ma'an" },
+  { name: "Tafilah" },
+  { name: "Ajloun" }
+];
 
 const TripDetails: React.FC<TripDetailsProps> = ({ tripData, updateTripData }) => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [errors, setErrors] = useState<{
     city?: string;
     price?: string;
@@ -30,6 +45,15 @@ const TripDetails: React.FC<TripDetailsProps> = ({ tripData, updateTripData }) =
       reader.readAsDataURL(file);
     }
   };
+const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const value = e.target.value;
+  updateTripData({ city: value });
+
+  if (value) {
+    setErrors((prev) => ({ ...prev, city: undefined }));
+  }
+};
+
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const value = e.target.value.replace(/[^0-9]/g, '');
@@ -51,15 +75,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({ tripData, updateTripData }) =
     }
   };
   
-  const handleCityChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    const value = e.target.value;
-    updateTripData({ city: value });
-    
-    // Clear error if city is provided
-    if (value) {
-      setErrors({...errors, city: undefined});
-    }
-  };
+ 
   
   const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>): void => {
     const value = e.target.value;
@@ -89,21 +105,35 @@ const TripDetails: React.FC<TripDetailsProps> = ({ tripData, updateTripData }) =
   return (
     <div>
       <h2 className="text-2xl font-medium mb-6">Trip details</h2>
-      
-      <div className="mb-6">
-        <label className="block text-gray-600 mb-2">City <span className="text-red-500">*</span></label>
-        <input
-          type="text"
-          value={tripData.city}
-          onChange={handleCityChange}
-          onBlur={() => setErrors({...errors, city: validateField('city', tripData.city)})}
-          className={`w-full border ${errors.city ? 'border-red-500' : 'border-gray-300'} rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-300`}
-          placeholder="Enter city name"
-          required
-        />
-        {errors.city && <p className="text-red-500 text-sm mt-1">{errors.city}</p>}
-      </div>
-      
+    <div className="mb-6">
+      <label className="block text-gray-600 mb-2">
+        City <span className="text-red-500">*</span>
+      </label>
+      <select
+        value={tripData.city}
+        onChange={handleChange}
+        onBlur={() =>
+          setErrors({
+            ...errors,
+            city: validateField('city', tripData.city),
+          })
+        }
+        className={`w-full border ${
+          errors.city ? 'border-red-500' : 'border-gray-300'
+        } rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-300`}
+        required
+      >
+        <option value="">Select a city</option>
+        {cities.map((city, index) => (
+          <option key={index} value={city.name}>
+            {city.name}
+          </option>
+        ))}
+      </select>
+      {errors.city && <p className="text-red-500 text-sm mt-1">{errors.city}</p>}
+    </div>
+
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label className="block text-gray-600 mb-2">Price <span className="text-red-500">*</span></label>

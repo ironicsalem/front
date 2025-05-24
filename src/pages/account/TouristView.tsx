@@ -12,14 +12,32 @@ interface Application {
   feedback?: string;
 }
 
+interface Booking {
+  _id: string;
+  scheduledDate: string;
+  scheduledTime: string;
+  status: string;
+  contactEmail: string;
+  contactPhone: string;
+  trip: {
+    title: string;
+    city: string;
+    imageUrl?: string;
+    price?: number;
+    path?: { name: string }[];
+  };
+}
+
+
 const TouristView = () => {
   const navigate = useNavigate();
   const [application, setApplication] = useState<Application | null>(null);
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchApplication = async () => {
+    const fetchData = async () => {
       try {
         const token = localStorage.getItem('authToken');
         if (!token) {
@@ -27,23 +45,20 @@ const TouristView = () => {
           return;
         }
 
-        const response = await axios.get(`${API_URL}/tourist/applications/myApplication`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        console.log("hello");
+        const [ bookingRes] = await Promise.all([
+          
+          axios.get(`${API_URL}/booking/myBookings`, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+        ]);
 
-        setApplication(response.data);
+        setBookings(bookingRes.data);
       } catch (err: any) {
         if (axios.isAxiosError(err)) {
-          if (err.response?.status === 404) {
-
-            setApplication(null);
-          } else if (err.response?.status === 401) {
+          if (err.response?.status === 401) {
             setError('Session expired. Please log in again.');
           } else {
-            setError('Failed to load application.');
+            setError('Failed to load data.');
           }
         } else {
           setError('Connection error.');
@@ -53,9 +68,21 @@ const TouristView = () => {
       }
     };
 
-    fetchApplication();
+    fetchData();
   }, [navigate]);
 
+  const handleDeleteBooking = async (bookingId: string) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      await axios.delete(`${API_URL}/booking/${bookingId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setBookings(prev => prev.filter(b => b._id !== bookingId));
+    } catch (error) {
+      console.log(error);
+      alert('Failed to delete booking.');
+    }
+  };
 
   const renderStatusCard = () => {
     if (!application) return null;
@@ -96,6 +123,121 @@ const TouristView = () => {
     );
   };
 
+const renderBookings = () => (
+  <div className="max-w-4xl mx-auto mt-10 px-4">
+    <h2 className="text-3xl font-bold text-gray-800 mb-8">Your Bookings</h2>
+
+    {bookings.length === 0 ? (
+      <div className="bg-gray-50 rounded-lg p-8 text-center">
+        <p className="text-gray-500 text-lg mb-4">You don't have any bookings yet.</p>
+        <a
+          href="/trips"
+          className="inline-block px-6 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors"
+        >
+          Browse Trips
+        </a>
+      </div>
+    ) : (
+      <div className="space-y-4">
+        {bookings.map((booking) => {
+          const date = new Date(booking.scheduledDate).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+          });
+          const time = booking.scheduledTime;
+          
+          return (
+            <div
+              key={booking._id}
+              className="flex bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100"
+            >
+              {/* Image */}
+              <div className="w-32 h-32 flex-shrink-0 relative">
+                <img
+                  src={booking.trip.imageUrl || "/group.jpg"}
+                  alt={booking.trip.title}
+                  className="w-full h-full object-cover"
+                />
+                
+                {/* Circular Path Overlay */}
+                {booking.trip.path && booking.trip.path.length > 0 && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="relative w-24 h-24">
+                      {/* Circle */}
+                      <svg className="w-full h-full" viewBox="0 0 100 100">
+                        <circle
+                          cx="50"
+                          cy="50"
+                          r="45"
+                          fill="none"
+                          stroke="rgba(251, 191, 36, 0.5)"
+                          strokeWidth="2"
+                          strokeDasharray="5,5"
+                        />
+                      </svg>
+                      
+                      
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Info */}
+              <div className="flex-1 p-5 flex flex-col">
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-gray-800 mb-1">{booking.trip.title}</h3>
+                  <p className="text-sm text-gray-500 mb-2">{booking.trip.city}</p>
+                  
+                  <div className="grid grid-cols-2 gap-y-1 gap-x-4 text-sm text-gray-600">
+                    <div className="flex items-center">
+                      <span className="font-medium">Date:</span> {date} at {time}
+                    </div>
+                    <div>
+                      <span className="font-medium">Status:</span> <span className="capitalize">{booking.status}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium">Price:</span> ${booking.trip.price}
+                    </div>
+                    <div>
+                    </div>
+                  </div>
+                  
+                  {/* Path Preview */}
+                  {booking.trip.path && booking.trip.path.length > 0 && (
+                    <div className="mt-3 flex items-center flex-wrap gap-2">
+                      {booking.trip.path.slice(0, 7).map((location, index) => (
+                        <span key={index} className="text-xs bg-gray-100 px-2 py-1 rounded-full">
+                          {location.name}
+                        </span>
+                      ))}
+                      {booking.trip?.path.length > 7 && (
+                        <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">
+                          +{booking.trip.path.length - 3} more
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Delete Button */}
+                <div className="mt-4 self-end">
+                  <button
+                    onClick={() => handleDeleteBooking(booking._id)}
+                    className="flex items-center gap-1 text-red-500 hover:text-red-600 text-sm font-medium transition-colors"
+                  >
+                    Cancel Booking
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    )}
+  </div>
+);
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -127,66 +269,42 @@ const TouristView = () => {
     );
   }
 
-  if (application) {
-    return (
-      <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-3xl mx-auto">
-          <h1 className="text-3xl font-extrabold text-gray-900 mb-2">Your Guide Journey</h1>
-          <p className="text-gray-500 mb-8">Track your application progress</p>
-          
-          {renderStatusCard()}
-
-          {application.feedback && (
-            <div className="bg-white p-6 rounded-xl shadow-sm">
-              <h2 className="font-bold text-lg mb-4 flex items-center gap-2">
-                <span className="text-amber-500">📝</span> Feedback
-              </h2>
-              <p className="text-gray-700">{application.feedback}</p>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // No application - show combined CTA section
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-6">
-      <div className="max-w-md w-full">
-        <div className="text-center mb-10">
-          <h1 className="text-3xl font-bold text-gray-900 mb-3">Welcome to Our Guide Community</h1>
-          <p className="text-gray-600">Share your local expertise or discover amazing trips</p>
-        </div>
+    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-3xl mx-auto">
+    
 
-        <div className="space-y-4">
-          <div className="bg-white/90 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-gray-200">
-            <div className="flex flex-col items-center text-center">
-              <span className="text-4xl mb-4">🏔️</span>
-              <h3 className="text-xl font-bold text-gray-800 mb-2">Become a Guide</h3>
-              <p className="text-gray-600 mb-4">Share your unique perspective and earn money showing travelers around</p>
-              <button
-                onClick={() => navigate('/apply')}
-                className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-white px-6 py-3 rounded-lg font-medium hover:shadow-md transition-all"
-              >
-                Apply to Guide
-              </button>
+        {renderBookings()}
+
+        {!application && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-10">
+            <div className="bg-white/90 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-gray-200">
+              <div className="flex flex-col items-center text-center">
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Become a Guide</h3>
+                <p className="text-gray-600 mb-4">Share your unique perspective and earn money showing travelers around</p>
+                <button
+                  onClick={() => navigate('/apply')}
+                  className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-white px-6 py-3 rounded-lg font-medium hover:shadow-md transition-all"
+                >
+                  Apply to Guide
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-white/90 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-gray-200">
+              <div className="flex flex-col items-center text-center">
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Explore Trips</h3>
+                <p className="text-gray-600 mb-4">Discover authentic experiences with our local guides</p>
+                <button
+                  onClick={() => navigate('/trips')}
+                  className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:shadow-md transition-all"
+                >
+                  Browse Trips
+                </button>
+              </div>
             </div>
           </div>
-
-          <div className="bg-white/90 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-gray-200">
-            <div className="flex flex-col items-center text-center">
-              <span className="text-4xl mb-4">✈️</span>
-              <h3 className="text-xl font-bold text-gray-800 mb-2">Explore Trips</h3>
-              <p className="text-gray-600 mb-4">Discover authentic experiences with our local guides</p>
-              <button
-                onClick={() => navigate('/trips')}
-                className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:shadow-md transition-all"
-              >
-                Browse Trips
-              </button>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

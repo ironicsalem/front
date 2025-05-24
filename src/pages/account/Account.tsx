@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import  {useNavigate}  from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import GuideView from './GuideView';
 import AdminView from './AdminView';
 import TouristView from './TouristView';
@@ -11,12 +11,14 @@ interface User {
   name: string;
   phone: string;
   profilePicture: string;
+  bio?: string;
 }
 
 interface UserFormData {
   email: string;
   name: string;
   phone: string;
+  bio: string;
 }
 
 interface Notification {
@@ -29,7 +31,12 @@ const API_URL = 'http://localhost:5000';
 const Account = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
-  const [formData, setFormData] = useState<UserFormData>({ email: '', name: '', phone: '' });
+  const [formData, setFormData] = useState<UserFormData>({ 
+    email: '', 
+    name: '', 
+    phone: '', 
+    bio: '' 
+  });
   const [isEditing, setIsEditing] = useState(false);
   const [notification, setNotification] = useState<Notification | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -43,16 +50,17 @@ const Account = () => {
         const token = localStorage.getItem('authToken');
         if (!token) throw new Error('No authentication token found');
 
-        // Fetch user data
         const userResponse = await axios.get(`${API_URL}/auth/verify`, {
           headers: { Authorization: `Bearer ${token}` },
         });
+        
         setRole(userResponse.data.user.role);
         setUser(userResponse.data.user);
         setFormData({
           email: userResponse.data.user.email,
           name: userResponse.data.user.name,
           phone: userResponse.data.user.phone,
+          bio: userResponse.data.user.bio || '',
         });
 
       } catch (error) {
@@ -66,7 +74,7 @@ const Account = () => {
     fetchData();
   }, [navigate]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
@@ -148,126 +156,142 @@ const Account = () => {
   }
 
   return (
-<div className="max-w-7xl mx-auto px-6 py-8">
-  <NotificationComponent />
+    <div className="max-w-7xl mx-auto px-6 py-8">
+      <NotificationComponent />
 
-  <div className="mb-10">
-    <h1 className="text-3xl font-bold text-gray-800 mb-8">Your Account</h1>
-    
-    <div className="bg-white rounded-xl shadow-lg p-8 mb-10">
-      <div className="flex flex-col lg:flex-row gap-8">
-        <div className="flex flex-col items-center lg:items-start">
-          <div className="relative w-32 h-32 mb-6">
-            <img
-              src={user?.profilePicture || 'NoPic.jpg'}
-              alt="Profile"
-              className="rounded-full w-full h-full object-cover border-4 border-amber-400"
-            />
-            <button
-              className="absolute -bottom-3 -right-3 bg-amber-500 text-white text-sm p-2 rounded-full shadow-lg hover:bg-amber-600 transition-colors"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-              </svg>
-            </button>
-            <input
-              type="file"
-              accept="image/*"
-              ref={fileInputRef}
-              onChange={handleImageUpload}
-              className="hidden"
-            />
-          </div>
-
-        </div>
-
-        <div className="flex-1 lg:pl-8">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-semibold">Profile Information</h2>
-            {!isEditing ? (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                Edit Profile
-              </button>
-            ) : (
-              <button
-                onClick={() => setIsEditing(false)}
-                className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                Cancel
-              </button>
-            )}
-          </div>
-
-          {isEditing ? (
-            <form onSubmit={handleUpdateProfile} className="space-y-4">
-              <div>
-                <label className="block text-base font-medium text-gray-700 mb-2">Name</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-base"
+      <div className="mb-10">
+        <h1 className="text-3xl font-bold text-gray-800 mb-8">Your Account</h1>
+        
+        <div className="bg-white rounded-xl shadow-lg p-8 mb-10">
+          <div className="flex flex-col lg:flex-row gap-8">
+            <div className="flex flex-col items-center lg:items-start">
+              <div className="relative w-32 h-32 mb-6">
+                <img
+                  src={user?.profilePicture || 'NoPic.jpg'}
+                  alt="Profile"
+                  className="rounded-full w-full h-full object-cover border-4 border-amber-400"
                 />
-              </div>
-              <div>
-                <label className="block text-base font-medium text-gray-700 mb-2">Email</label>
+                <button
+                  className="absolute -bottom-3 -right-3 bg-amber-500 text-white text-sm p-2 rounded-full shadow-lg hover:bg-amber-600 transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                  </svg>
+                </button>
                 <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-base"
-                  required
+                  type="file"
+                  accept="image/*"
+                  ref={fileInputRef}
+                  onChange={handleImageUpload}
+                  className="hidden"
                 />
-              </div>
-              <div>
-                <label className="block text-base font-medium text-gray-700 mb-2">Phone</label>
-                <input
-                  type="tel"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-base"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="mt-6 bg-amber-500 hover:bg-amber-600 text-white px-6 py-3 rounded-lg text-base font-medium transition-colors"
-              >
-                {isLoading ? 'Saving...' : 'Save Changes'}
-              </button>
-            </form>
-          ) : (
-            <div className="space-y-4 text-base">
-              <div>
-                <p className="text-gray-500 mb-1">Name</p>
-                <p className="font-medium text-lg">{formData.name || 'Not provided'}</p>
-              </div>
-              <div>
-                <p className="text-gray-500 mb-1">Email</p>
-                <p className="font-medium text-lg">{formData.email}</p>
-              </div>
-              <div>
-                <p className="text-gray-500 mb-1">Phone</p>
-                <p className="font-medium text-lg">{formData.phone || 'Not provided'}</p>
               </div>
             </div>
-          )}
+
+            <div className="flex-1 lg:pl-8">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-semibold">Profile Information</h2>
+                {!isEditing ? (
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                  >
+                    Edit Profile
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setIsEditing(false)}
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+
+              {isEditing ? (
+                <form onSubmit={handleUpdateProfile} className="space-y-4">
+                  <div>
+                    <label className="block text-base font-medium text-gray-700 mb-2">Name</label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-base"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-base font-medium text-gray-700 mb-2">Email</label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-base"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-base font-medium text-gray-700 mb-2">Phone</label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-base"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-base font-medium text-gray-700 mb-2">Bio</label>
+                    <textarea
+                      name="bio"
+                      value={formData.bio}
+                      onChange={handleInputChange}
+                      rows={4}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-base"
+                      placeholder="Tell us about yourself..."
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="mt-6 bg-amber-500 hover:bg-amber-600 text-white px-6 py-3 rounded-lg text-base font-medium transition-colors"
+                  >
+                    {isLoading ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </form>
+              ) : (
+                <div className="space-y-4 text-base">
+                  <div>
+                    <p className="text-gray-500 mb-1">Name</p>
+                    <p className="font-medium text-lg">{formData.name || 'Not provided'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 mb-1">Email</p>
+                    <p className="font-medium text-lg">{formData.email}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 mb-1">Phone</p>
+                    <p className="font-medium text-lg">{formData.phone || 'Not provided'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 mb-1">Bio</p>
+                    <p className="font-medium text-lg whitespace-pre-line">
+                      {formData.bio || 'No bio yet'}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
+      
+      {role === 'guide' && <GuideView />}
+      {role === 'admin' && <AdminView />}
+      {role === 'tourist' && <TouristView />}
     </div>
-  </div>
-  
-  {role === 'guide' && <GuideView />}
-  {role === 'admin' && <AdminView />}
-  {role === 'tourist' && <TouristView />}
-</div>
   );
 };
 

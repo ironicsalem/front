@@ -21,6 +21,7 @@ const VerifyEmail: React.FC<VerifyEmailProps> = ({ setIsEmailVerified }) => {
     setSuccess("");
 
     const email = localStorage.getItem("email");
+      console.log("hello");
 
     if (!email) {
       setError("No email found. Please register again.");
@@ -32,8 +33,9 @@ const VerifyEmail: React.FC<VerifyEmailProps> = ({ setIsEmailVerified }) => {
       const response = await axios.post("http://localhost:5000/auth/verify-email", {
         email,
         code,
-      });
-
+      }); 
+       localStorage.setItem('authToken', response.data.token);
+      console.log(response.data.token);
       setSuccess(response.data.message || "Email verified successfully!");
 
       // Set email verified to true after successful verification
@@ -54,7 +56,7 @@ const VerifyEmail: React.FC<VerifyEmailProps> = ({ setIsEmailVerified }) => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-opacity-75 bg-gray-800">
+    <div className="flex items-center justify-center min-h-screen bg-opacity-75 bg-gray-200">
       <div className="bg-white rounded-lg p-8 w-full max-w-md relative">
         <div className="absolute top-4 right-4">
           <button

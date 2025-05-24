@@ -27,6 +27,7 @@ const VerifyEmail: React.FC<VerifyEmailProps> = ({ setIsEmailVerified }) => {
       setIsLoading(false);
       return;
     }
+      console.log(email);
 
     try {
       const response = await axios.post("http://localhost:5000/auth/verify-email", {

@@ -87,7 +87,7 @@ const Home: React.FC = () => {
                     className="w-full h-full object-cover absolute inset-0 group-hover:scale-110 transition-transform duration-700 ease-out"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
-                      target.src = "/placeholder-city.jpg";
+                      target.src = "/petra.jpg";
                     }}
                   />
 
@@ -192,7 +192,7 @@ const Home: React.FC = () => {
                 className="w-full h-full object-cover"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
-                  target.src = '/placeholder-group.jpg';
+                  target.src = '/group.jpg';
                 }}
               />
               <div className="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent md:bg-gradient-to-l" />
@@ -261,7 +261,7 @@ const Home: React.FC = () => {
                       className="w-14 h-14 rounded-full object-cover border-2 border-amber-300 shadow-lg"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
-                        target.src = "/placeholder-profile.jpg";
+                        target.src = "/NoPic.jpg";
                       }}
                     />
                     <span className="font-bold text-amber-700 text-lg">{testimonial.name}</span>

@@ -18,6 +18,7 @@ import ForgotPassword from "./pages/ForgetPassword";
 import CityOverview from "./pages/CityOverview";
 import ResetPassword from "./pages/ResetPassword";
 import Account from "./pages/account/Account";
+import EditTrip from "./pages/trip_creation/editTrip";
 import VerifyEmail from './pages/VerifyEmail';
 import ApplyForm from './pages/ApplyForm';
 import { checkAuthStatus } from "./services/authService";
@@ -25,6 +26,11 @@ import GuidesApplications from "./pages/applicationHandling";
 import TripsPage from "./pages/Trips";
 import GuideProfileView from "./pages/account/GuideProfileView";
 import CreateTrip from "./pages/trip_creation/CreateTrip";
+import TripDetails from "./pages/TripDetails";
+import Bookings from "./pages/account/Booking";
+import Booking from "./components/Booking";
+import VerifyResetPass from "./pages/VerifyResetPassword";
+
 
 // Protected route wrapper component
 const ProtectedRoute = ({
@@ -160,6 +166,8 @@ function App() {
                 )
               }
             />
+            <Route path="/edit-trip/:id" element={<EditTrip />} />
+
             <Route path="/apply" element={<ApplyForm />} />
             <Route path="/Applicatons" element={<GuidesApplications />} />
             <Route path="/trips" element={<TripsPage />} />
@@ -167,7 +175,7 @@ function App() {
             {/* Password recovery routes */}
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/verify-reset-password" element={<VerifyEmail setIsEmailVerified={() => {}} />} />
+            <Route path="/verify-reset-password" element={<VerifyResetPass setIsEmailVerified={() => {}} />} />
 
             {/*sign up verfication*/}
             <Route
@@ -188,8 +196,26 @@ function App() {
                 </ProtectedRoute>
               }
             />
-              <Route path="/guide/:guideId" element={<GuideProfileView />} />
+            <Route
+                path="/my-bookings"
+                element={
+                  <ProtectedRoute isAuthenticated={isAuthenticated}>
+                    <Bookings />
+                  </ProtectedRoute>
+                }
+              />
 
+            <Route path="/trip/:id" element={<TripDetails />} />
+
+            <Route path="/guide/:guideId" element={<GuideProfileView />} />
+            <Route
+              path="/booking/:tripId"
+              element={
+                <ProtectedRoute isAuthenticated={isAuthenticated}>
+                  <Booking />
+                </ProtectedRoute>
+              }
+            />
             {/* Catch-all route for 404 */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

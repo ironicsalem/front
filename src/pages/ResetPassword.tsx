@@ -33,7 +33,7 @@ const ResetPassword: React.FC = () => {
   const email = queryParams.get('email');
   
   useEffect(() => {
-    // Validate token exists
+        const token = localStorage.getItem('authToken');
     if (!token) {
       setState(prev => ({
         ...prev,
@@ -92,12 +92,18 @@ const ResetPassword: React.FC = () => {
     }));
 
     try {
-      // Call API to reset password
-      await axios.post(`${API_URL}/auth/set-new-password`, {
-        token,
-        password: state.password,
-      });
-      
+       const token = localStorage.getItem('authToken');
+
+      await axios.post(
+      `${API_URL}/auth/set-new-password`,
+      { password: state.password }, // <-- data object
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
       setState(prev => ({
         ...prev,
         isLoading: false,
@@ -106,7 +112,7 @@ const ResetPassword: React.FC = () => {
       
       // Redirect to login after 3 seconds
       setTimeout(() => {
-        navigate('/login');
+        navigate('/');
       }, 3000);
     } catch (error) {
       const err = error as {

@@ -246,9 +246,12 @@ const CityPage: React.FC = () => {
                         <p className="text-gray-600 mb-4 line-clamp-2">{trip.description}</p>
                         <div className="flex justify-between items-center">
                           <span className="text-amber-600 font-medium text-lg">${trip.price}</span>
-                          <button className="bg-amber-500 hover:bg-amber-600 text-white px-5 py-2 rounded-lg text-sm transition-colors shadow-md hover:shadow-lg">
-                            Details
-                          </button>
+                          <button
+                              onClick={() => navigate(`/trip/${trip._id}`)}
+                              className="bg-amber-500 hover:bg-amber-600 text-white px-5 py-2 rounded-lg text-sm transition-colors shadow-md hover:shadow-lg"
+                            >
+                              Details
+                            </button>
                         </div>
                       </div>
                     </div>
@@ -354,7 +357,7 @@ const CityPage: React.FC = () => {
                           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
-                            target.src = '/placeholder-gallery.jpg';
+                            target.src = '/petra.jpg';
                           }}
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-6">

@@ -62,7 +62,7 @@ const TripsPage = () => {
           <div 
             key={trip._id} 
             className="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 group cursor-pointer"
-            onClick={() => navigate(`/trips/${trip._id}`)}
+            onClick={() => navigate(`/trip/${trip._id}`)}
           >
             <div className="relative h-48 overflow-hidden">
               <img
@@ -84,6 +84,7 @@ const TripsPage = () => {
                   <span className="text-amber-600 font-bold text-lg">${trip.price}</span>
                 )}
                 <button 
+                  onClick={() => navigate(`/trip/${trip._id}`)}
                   className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm transition-colors shadow-md hover:shadow-lg"
                 >
                   View Details

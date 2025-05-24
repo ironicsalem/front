@@ -1,17 +1,30 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import logo from '/logo.svg';
 import { logoutUser } from '../services/authService';
+import { 
+  Home, 
+  Info, 
+  Mail, 
+  LogIn, 
+  UserPlus, 
+  User, 
+  LogOut,
+  ChevronDown,
+  ChevronUp
+} from 'lucide-react';
 
 interface NavbarProps {
-  isScrolled: boolean
-  isAuthenticated: boolean
-  setIsAuthenticated: (value: boolean) => void
+  isScrolled: boolean;
+  isAuthenticated: boolean;
+  setIsAuthenticated: (value: boolean) => void;
 }
 
 const Navbar = ({ isScrolled, isAuthenticated, setIsAuthenticated }: NavbarProps) => {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-  const navigate = useNavigate()
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = async () => {
     try {
@@ -23,118 +36,162 @@ const Navbar = ({ isScrolled, isAuthenticated, setIsAuthenticated }: NavbarProps
     } catch (error) {
       console.error('Error signing out:', error);
     }
-  }
+  };
 
   const toggleDropdown = () => {
     setIsDropdownOpen(!isDropdownOpen);
-  }
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Close dropdown when navigating
+  useEffect(() => {
+    setIsDropdownOpen(false);
+  }, [location]);
+
+  const navLinkClass = "flex items-center gap-2 text-white hover:text-amber-400 transition-colors";
+  const activeNavLinkClass = "text-amber-400 font-medium";
 
   return (
     <nav 
       className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${
         isScrolled 
-          ? 'bg-amber-950 p-4' 
-          : 'bg-amber-950 p-4'
+          ? 'bg-amber-950/95 backdrop-blur-sm py-3 shadow-lg' 
+          : 'bg-amber-950 py-4'
       }`}
     >
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center">
           {/* Logo and Brand Name */}
-          <Link to="/" className="flex items-center">
+          <Link 
+            to="/" 
+            className="flex items-center group"
+            aria-label="Guidak Home"
+          >
             <div className="flex items-center">
               <img 
                 src={logo} 
                 alt="Guidak Logo" 
-                className="h-13 w-10 mr-2" 
+                className="h-10 w-10 mr-2 transition-transform group-hover:scale-110" 
                 style={{ filter: 'invert(57%) sepia(52%) saturate(2700%) hue-rotate(360deg) brightness(102%) contrast(101%)' }}
               />
-              <span className="text-xl font-bold text-white">Guidak</span>
+              <span className="text-xl font-bold text-white group-hover:text-amber-400 transition-colors">
+                Guidak
+              </span>
             </div>
           </Link>
 
           {/* Navigation Links */}
-          <div className="flex items-center space-x-6">
-            <Link to="/" className="text-white hover:text-amber-600 transition-colors">
-              Home
+          <div className="hidden md:flex items-center gap-6">
+            <Link 
+              to="/" 
+              className={`${navLinkClass} ${location.pathname === '/' ? activeNavLinkClass : ''}`}
+              aria-current={location.pathname === '/' ? 'page' : undefined}
+            >
+              <Home size={18} />
+              <span>Home</span>
             </Link>
-            <Link to="/about" className="text-white hover:text-amber-600 transition-colors">
-              About
+            <Link 
+              to="/about" 
+              className={`${navLinkClass} ${location.pathname === '/about' ? activeNavLinkClass : ''}`}
+              aria-current={location.pathname === '/about' ? 'page' : undefined}
+            >
+              <Info size={18} />
+              <span>About</span>
             </Link>
-            <Link to="/contact" className="text-white hover:text-amber-600 transition-colors">
-              Contact
+            <Link 
+              to="/contact" 
+              className={`${navLinkClass} ${location.pathname === '/contact' ? activeNavLinkClass : ''}`}
+              aria-current={location.pathname === '/contact' ? 'page' : undefined}
+            >
+              <Mail size={18} />
+              <span>Contact</span>
             </Link>
 
             {!isAuthenticated ? (
               <>
                 <Link 
                   to="/login"
-                  className="text-white hover:text-amber-600 transition-colors"
+                  className={`${navLinkClass} ${location.pathname === '/login' ? activeNavLinkClass : ''}`}
                 >
-                  Login
+                  <LogIn size={18} />
+                  <span>Login</span>
                 </Link>
                 <Link 
                   to="/signup"
-                  className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-md transition-colors"
+                  className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2"
                 >
-                  Sign Up
+                  <UserPlus size={18} />
+                  <span>Sign Up</span>
                 </Link>
               </>
             ) : (
-              <div className="relative">
+              <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={toggleDropdown}
-                  className="text-white hover:text-amber-600 transition-colors flex items-center"
-                  onMouseEnter={() => setIsDropdownOpen(true)}
+                  className={`${navLinkClass} ${isDropdownOpen ? 'text-amber-400' : ''}`}
+                  aria-expanded={isDropdownOpen}
+                  aria-haspopup="true"
+                  aria-label="Account menu"
                 >
-                  My Account
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    className="h-4 w-4 ml-1" 
-                    fill="none" 
-                    viewBox="0 0 24 24" 
-                    stroke="currentColor"
-                  >
-                    <path 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round" 
-                      strokeWidth={2} 
-                      d="M19 9l-7 7-7-7" 
-                    />
-                  </svg>
+                  <User size={18} />
+                  <span>Account</span>
+                  {isDropdownOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 </button>
 
                 {isDropdownOpen && (
                   <div 
-                    className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10"
-                    onMouseLeave={() => setIsDropdownOpen(false)}
+                    className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 border border-gray-100"
+                    role="menu"
                   >
                     <Link 
-                      to="/account/messages" 
-                      className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                      to="/account" 
+                      className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-amber-50 hover:text-amber-600 transition-colors"
+                      role="menuitem"
                     >
-                      Messages
+                      <User size={16} />
+                      <span>Profile</span>
                     </Link>
-                    <Link 
-                      to="/account/trips" 
-                      className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
-                    >
-                      My Trips
-                    </Link>
+                    
                     <button
                       onClick={handleLogout}
-                      className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                      className="flex items-center gap-2 w-full text-left px-4 py-2 text-gray-700 hover:bg-amber-50 hover:text-amber-600 transition-colors"
+                      role="menuitem"
                     >
-                      Logout
+                      <LogOut size={16} />
+                      <span>Logout</span>
                     </button>
                   </div>
                 )}
               </div>
             )}
           </div>
+
+          {/* Mobile menu button (would need implementation) */}
+          <button 
+            className="md:hidden text-white focus:outline-none"
+            aria-label="Toggle menu"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
         </div>
       </div>
     </nav>
-  )
-}
+  );
+};
 
-export default Navbar
+export default Navbar;

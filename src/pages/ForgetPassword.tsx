@@ -43,7 +43,8 @@ const ForgotPassword: React.FC = () => {
     try {
       // Call API to request password reset
       await axios.post(`${API_URL}/auth/forgot-password`, { email: state.email });
-      
+        localStorage.setItem('email', state.email);
+
       setState({
         ...state,
         resetSent: true,
@@ -77,7 +78,7 @@ const ForgotPassword: React.FC = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-opacity-75 bg-gray-800">
+    <div className="flex items-center justify-center min-h-screen bg-opacity-75 bg-gray-200">
       <div className="bg-white rounded-lg p-8 w-full max-w-md relative">
         {/* Close button */}
         <div className="absolute top-4 right-4">
