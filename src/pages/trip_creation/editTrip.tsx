@@ -73,7 +73,7 @@ const EditTrip = () => {
             Authorization: `Bearer ${localStorage.getItem('authToken')}`
           }
         });
-        setTrip(response.data);
+        setTrip(response.data.trip);
         setImagePreview(response.data.imageUrl);
       } catch (err) {
         setError('Failed to fetch trip details');
@@ -187,7 +187,7 @@ const EditTrip = () => {
           'Content-Type': 'multipart/form-data',
         },
       });
-
+      console.log(trip);
       navigate('/account');
     } catch (err) {
       setError('Failed to update trip');
@@ -387,7 +387,7 @@ const EditTrip = () => {
           )}
 
           <div className="space-y-2">
-            {trip.path.map((location, index) => (
+            {trip.path?.map((location, index) => (
               <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center">
                   <MapPin className="w-4 h-4 text-amber-500 mr-2" />
@@ -469,7 +469,7 @@ const EditTrip = () => {
           )}
 
           <div className="space-y-2">
-            {trip.schedule.map((item, index) => (
+            {trip.schedule?.map((item, index) => (
               <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center space-x-4">
                   <Calendar className="w-4 h-4 text-amber-500" />
