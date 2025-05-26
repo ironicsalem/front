@@ -224,7 +224,7 @@ const renderBookings = () => (
                 <div className="mt-4 self-end">
                   <button
                     onClick={() => handleDeleteBooking(booking._id)}
-                    className="flex items-center gap-1 text-red-500 hover:text-red-600 text-sm font-medium transition-colors"
+                    className="flex items-center gap-1 text-amber-900 hover:text-red-600 text-sm font-medium transition-colors"
                   >
                     Cancel Booking
                   </button>

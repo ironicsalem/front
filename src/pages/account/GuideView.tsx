@@ -15,7 +15,10 @@ import {
   Clock,
   DollarSign,
   Send,
-  Camera
+  Camera,
+  Users,
+  Check,
+  XCircle
 } from 'lucide-react';
 
 const API_URL = 'http://localhost:5000';
@@ -65,14 +68,28 @@ interface Review {
     name: string;
     profilePicture?: string;
   };
-  images: [];
-  rating: number;
+images: string[];  rating: number;
   content: string;
   createdAt: string;
 }
 
+interface Booking {
+  _id: string;
+  scheduledDate: string;
+  scheduledTime: string;
+  status: string;
+  contactEmail: string;
+  contactPhone: string;
+  trip: {
+    title: string;
+    city: string;
+    imageUrl?: string;
+    price?: number;
+    path?: { name: string }[];
+  };
+}
 const GuideView = () => {
-  const [activeTab, setActiveTab] = useState<'posts' | 'trips' | 'reviews' | 'profile'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'trips' | 'reviews' | 'profile' | 'bookings'>('posts');
   const [posts, setPosts] = useState<Post[]>([]);
   const [newPost, setNewPost] = useState<NewPostState>({ title: '', content: '', images: [] });
   const [isLoading, setIsLoading] = useState(true);
@@ -81,6 +98,8 @@ const GuideView = () => {
   const [isLoadingTrips, setIsLoadingTrips] = useState(false);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isLoadingReviews, setIsLoadingReviews] = useState(false);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [isLoadingBookings, setIsLoadingBookings] = useState(false);
   const [showPostForm, setShowPostForm] = useState(false);
   const navigate = useNavigate();
 
@@ -96,6 +115,7 @@ const GuideView = () => {
         setUser(response.data.user);
         fetchTrips(response.data.user._id);
         fetchReviews();
+        fetchBookings();
       } catch (error) {
         console.error('Error fetching user:', error);
       }
@@ -117,17 +137,33 @@ const GuideView = () => {
       setIsLoadingReviews(true);
       try {
         const token = localStorage.getItem('authToken');
-
         const response = await axios.get(`${API_URL}/review/reviewsNagham`, {
           headers: {
             Authorization: `Bearer ${token}`
           }
-        });        console.log(response.data);
+        });
         setReviews(response.data || []);
       } catch (error) {
         console.error('Error fetching reviews:', error);
       } finally {
         setIsLoadingReviews(false);
+      }
+    };
+
+    const fetchBookings = async () => {
+      setIsLoadingBookings(true);
+      try {
+        const token = localStorage.getItem('authToken');
+        const response = await axios.get(`${API_URL}/booking/guide-bookings`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        setBookings(Array.isArray(response.data)?response.data : []);
+      } catch (error) {
+        console.error('Error fetching bookings:', error);
+      } finally {
+        setIsLoadingBookings(false);
       }
     };
 
@@ -219,6 +255,27 @@ const GuideView = () => {
     }));
   };
 
+  const updateBookingStatus = async (bookingId: string, status: 'confirmed' | 'cancelled') => {
+    try {
+      const token = localStorage.getItem('authToken');
+      await axios.patch(
+        `${API_URL}/booking/${bookingId}/status`,
+        { status },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+      
+      setBookings(bookings?.map(booking => 
+        booking._id === bookingId ? { ...booking, status } : booking
+      ));
+    } catch (error) {
+      console.error('Error updating booking status:', error);
+    }
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-lg mb-6 overflow-hidden">
       <div className="border-b border-gray-200 bg-gradient-to-r from-amber-50 to-orange-50">
@@ -247,6 +304,19 @@ const GuideView = () => {
             <div className="flex items-center space-x-2">
               <MapPin className="w-4 h-4" />
               <span>My Trips</span>
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('bookings')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm transition-all duration-200 ${
+              activeTab === 'bookings'
+                ? 'border-amber-500 text-amber-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <div className="flex items-center space-x-2">
+              <Users className="w-4 h-4" />
+              <span>Bookings</span>
             </div>
           </button>
           <button
@@ -412,9 +482,13 @@ const GuideView = () => {
             ) : (
               <div className="grid gap-6">
                 {posts.map((post) => (
-                  <div key={post._id} className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-all duration-200">
+                  <div
+                    key={post._id}
+                    className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-all duration-200"
+                  >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
+                        {/* Author Info */}
                         <div className="flex items-center space-x-3 mb-3">
                           <img
                             src={user?.profilePicture || '/NoPic.jpg'}
@@ -425,36 +499,58 @@ const GuideView = () => {
                             <p className="font-medium text-sm">{user?.name || 'You'}</p>
                             <p className="text-xs text-gray-500">
                               {new Date(post.createdAt).toLocaleDateString()} •{' '}
-                              {new Date(post.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              {new Date(post.createdAt).toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
                             </p>
                           </div>
                         </div>
+
+                        {/* Title & Content */}
                         <h3 className="text-xl font-semibold text-gray-900 mb-3">{post.title}</h3>
                         <p className="text-gray-700 mb-4 leading-relaxed whitespace-pre-line">{post.content}</p>
 
+                        {/* Image Grid */}
                         {post.images?.length > 0 && (
-                          <div className={`grid gap-2 mt-3 ${
-                            post.images.length === 1 ? 'grid-cols-1' :
-                            post.images.length === 2 ? 'grid-cols-2' :
-                            post.images.length === 3 ? 'grid-cols-2' : 'grid-cols-2'
-                          }`}>
-                            {post.images.slice(0, 4).map((image, index) => (
-                              <div
-                                key={index}
-                                className={`relative aspect-square ${
-                                  post.images.length === 3 && index === 0 ? 'row-span-2' : ''
-                                }`}
-                              >
-                                <img
-                                  src={image}
-                                  alt={`Post ${index}`}
-                                  className="w-full h-full object-cover rounded-md"
-                                />
-                              </div>
-                            ))}
+                          <div
+                            className={`grid gap-2 mt-3 ${
+                              post.images.length === 1
+                                ? 'grid-cols-1'
+                                : post.images.length === 2
+                                ? 'grid-cols-2'
+                                : post.images.length === 3
+                                ? 'grid-cols-3'
+                                : 'grid-cols-2'
+                            }`}
+                          >
+                            {post.images.slice(0, 4).map((image, index) => {
+                              let className = 'aspect-[4/3]'; // default wide
+
+                              if (post.images.length === 3) {
+                                // Make first image span 2 cols
+                                className = index === 0 ? 'col-span-2 aspect-video' : 'aspect-square';
+                              } else if (post.images.length === 1) {
+                                className = 'aspect-video';
+                              } else {
+                                className = 'aspect-square';
+                              }
+
+                              return (
+                                <div key={index} className={`relative ${className}`}>
+                                  <img
+                                    src={image}
+                                    alt={`Post ${index}`}
+                                    className="w-full h-full object-cover rounded-md"
+                                  />
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
                       </div>
+
+                      {/* Delete Button */}
                       <button
                         onClick={() => handleDeletePost(post._id)}
                         className="text-red-400 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-all duration-200"
@@ -545,92 +641,197 @@ const GuideView = () => {
             )}
           </div>
         )}
-    {/* Reviews Tab */}
-{activeTab === 'reviews' && (
-  <div className="space-y-6">
-    <h2 className="text-xl font-bold text-gray-900">Your Reviews</h2>
-    
-    {isLoadingReviews ? (
-      <div className="text-center py-12">
-        <div className="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-gray-600">Loading your reviews...</p>
-      </div>
-    ) : reviews.length === 0 ? (
-      <div className="text-center py-12">
-        <div className="text-gray-400 mb-4">
-          <Star className="w-16 h-16 mx-auto" />
-        </div>
-        <h3 className="text-xl font-medium text-gray-900 mb-2">No reviews yet</h3>
-        <p className="text-gray-600">You haven't received any reviews yet</p>
-      </div>
-    ) : (
-      <div className="space-y-6">
-        {reviews.map((review) => (
-          <div key={review._id} className="border border-gray-200 rounded-xl p-6 bg-gradient-to-r from-white to-amber-50">
-            <div className="flex items-start space-x-4">
-              <div className="bg-amber-100 rounded-full p-3">
-                {review.author.profilePicture ? (
-                  <img 
-                    src={review.author.profilePicture} 
-                    alt={review.author.name}
-                    className="w-6 h-6 rounded-full object-cover"
-                  />
-                ) : (
-                  <UserIcon className="w-6 h-6 text-amber-600" />
-                )}
+
+        {/* Bookings Tab */}
+      {activeTab === 'bookings' && (
+        <div className="space-y-6">
+          <h2 className="text-xl font-bold text-gray-900">Trip Bookings</h2>
+
+          {isLoadingBookings ? (
+            <div className="text-center py-12">
+              <div className="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+              <p className="text-gray-600">Loading your bookings...</p>
+            </div>
+          ) : bookings.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-gray-400 mb-4">
+                <Users className="w-16 h-16 mx-auto" />
               </div>
-              <div className="flex-1">
-                <div className="flex items-center space-x-3 mb-2">
-                  <span className="font-medium text-gray-900">
-                    {review.author.name}
-                  </span>
-                  <div className="flex items-center space-x-1">
-                    {[...Array(5)].map((_, i) => (
-                      <span key={i} className={i < review.rating ? 'text-amber-400' : 'text-gray-300'}>
-                        ★
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <p className="text-gray-700 leading-relaxed mb-4">
-                  {review.content}
-                </p>
-                
-                {/* Review Images */}
-                {review.images?.length > 0 && (
-                  <div className={`grid gap-2 mt-3 ${
-                    review.images.length === 1 ? 'grid-cols-1' :
-                    review.images.length === 2 ? 'grid-cols-2' :
-                    review.images.length === 3 ? 'grid-cols-2' : 'grid-cols-2'
-                  }`}>
-                    {review.images.slice(0, 4).map((image, index) => (
-                      <div
-                        key={index}
-                        className={`relative aspect-square ${
-                          review.images.length === 3 && index === 0 ? 'row-span-2' : ''
+              <h3 className="text-xl font-medium text-gray-900 mb-2">No bookings yet</h3>
+              <p className="text-gray-600">You haven't received any trip bookings yet</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {bookings.map((booking) => (
+                <div key={booking._id} className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-all duration-200">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    
+                    {/* Trip Info */}
+                    <div className="flex items-start space-x-4 flex-1">
+                      <img
+                        src={booking.trip.imageUrl || '/group.jpg'}
+                        alt={booking.trip.title}
+                        className="w-16 h-16 rounded-lg object-cover"
+                      />
+                      <div>
+                        <h3 className="font-semibold text-gray-900">{booking.trip.title}</h3>
+                        <div className="flex flex-wrap gap-x-4 gap-y-2 mt-1 text-sm text-gray-600">
+                          <div className="flex items-center">
+                            <Calendar className="w-4 h-4 mr-1.5" />
+                            <span>{new Date(booking.scheduledDate).toLocaleDateString()} @ {booking.scheduledTime}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <MapPin className="w-4 h-4 mr-1.5" />
+                            <span>{booking.trip.city}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <DollarSign className="w-4 h-4 mr-1.5" />
+                            <span>${booking.trip.price ?? 'N/A'}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Contact Info */}
+                    <div className="flex items-center space-x-3">
+                      <div className="bg-amber-100 rounded-full p-2">
+                        <UserIcon className="w-5 h-5 text-amber-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">{booking.contactEmail}</p>
+                        <p className="text-sm text-gray-500">{booking.contactPhone}</p>
+                      </div>
+                    </div>
+
+                    {/* Status and Actions */}
+                    <div className="flex flex-col items-end space-y-2">
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          booking.status === 'confirmed'
+                            ? 'bg-green-100 text-green-800'
+                            : booking.status === 'cancelled'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-amber-100 text-amber-800'
                         }`}
                       >
-                        <img
-                          src={image}
-                          alt={`Review ${index}`}
-                          className="w-full h-full object-cover rounded-md hover:scale-105 transition-transform duration-300"
-                        />
-                      </div>
-                    ))}
+                        {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                      </span>
+
+                      {booking.status === 'pending' && (
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => updateBookingStatus(booking._id, 'confirmed')}
+                            className="flex items-center space-x-1 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 text-sm"
+                          >
+                            <Check className="w-4 h-4" />
+                            <span>Confirm</span>
+                          </button>
+                          <button
+                            onClick={() => updateBookingStatus(booking._id, 'cancelled')}
+                            className="flex items-center space-x-1 px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-200 text-sm"
+                          >
+                            <XCircle className="w-4 h-4" />
+                            <span>Reject</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                )}
-                
-                <span className="text-sm text-gray-500 mt-2 block">
-                  {new Date(review.createdAt).toLocaleDateString()}
-                </span>
-              </div>
+                </div>
+              ))}
             </div>
+          )}
+        </div>
+      )}
+
+
+        {/* Reviews Tab */}
+        {activeTab === 'reviews' && (
+          <div className="space-y-6">
+            <h2 className="text-xl font-bold text-gray-900">Your Reviews</h2>
+            
+            {isLoadingReviews ? (
+              <div className="text-center py-12">
+                <div className="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                <p className="text-gray-600">Loading your reviews...</p>
+              </div>
+            ) : reviews.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-gray-400 mb-4">
+                  <Star className="w-16 h-16 mx-auto" />
+                </div>
+                <h3 className="text-xl font-medium text-gray-900 mb-2">No reviews yet</h3>
+                <p className="text-gray-600">You haven't received any reviews yet</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {reviews.map((review) => (
+                  <div key={review._id} className="border border-gray-200 rounded-xl p-6 bg-gradient-to-r from-white to-amber-50">
+                    <div className="flex items-start space-x-4">
+                      <div className="bg-amber-100 rounded-full p-3">
+                        {review.author.profilePicture ? (
+                          <img 
+                            src={review.author.profilePicture} 
+                            alt={review.author.name}
+                            className="w-6 h-6 rounded-full object-cover"
+                          />
+                        ) : (
+                          <UserIcon className="w-6 h-6 text-amber-600" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <span className="font-medium text-gray-900">
+                            {review.author.name}
+                          </span>
+                          <div className="flex items-center space-x-1">
+                            {[...Array(5)].map((_, i) => (
+                              <span key={i} className={i < review.rating ? 'text-amber-400' : 'text-gray-300'}>
+                                ★
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        <p className="text-gray-700 leading-relaxed mb-4">
+                          {review.content}
+                        </p>
+                        
+                        {/* Review Images */}
+                        {review.images?.length > 0 && (
+                          <div className={`grid gap-2 mt-3 ${
+                            review.images.length === 1 ? 'grid-cols-1' :
+                            review.images.length === 2 ? 'grid-cols-2' :
+                            review.images.length === 3 ? 'grid-cols-2' : 'grid-cols-2'
+                          }`}>
+                            {review.images.slice(0, 4).map((image, index) => (
+                              <div
+                                key={index}
+                                className={`relative aspect-square ${
+                                  review.images.length === 3 && index === 0 ? 'row-span-2' : ''
+                                }`}
+                              >
+                                <img
+                                  src={image}
+                                  alt={`Review ${index}`}
+                                  className="w-full h-full object-cover rounded-md hover:scale-105 transition-transform duration-300"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        <span className="text-sm text-gray-500 mt-2 block">
+                          {new Date(review.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        ))}
-      </div>
-    )}
-  </div>
-)}
+        )}
+
         {/* Profile Tab */}
         {activeTab === 'profile' && user && (
           <div className="space-y-6">

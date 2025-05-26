@@ -69,8 +69,9 @@ const TripDetail: React.FC = () => {
         };
         
         const response = await axios.get<TripResponse>(url, config);
-        console.log('Trip data received:', response.data);
         setTrip(response.data.trip);
+        console.log(response.data.trip._id)
+
         setGuideUser(response.data.guideUser);
         setError(null);
       } catch (error) {
@@ -361,7 +362,6 @@ const TripDetail: React.FC = () => {
                   <p className="text-gray-500">No available dates for booking.</p>
                 )}
               </div>
-
               <button
                 onClick={() => navigate(`/booking/${trip._id}`)}
                 className="w-full py-4 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-semibold text-lg transition-colors shadow-md"

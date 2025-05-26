@@ -511,7 +511,7 @@ const handleSubmitReview = async (e: React.FormEvent) => {
                             <img 
                               src={trip.imageUrl} 
                               alt={trip.title}
-                              className="w-24 h-24 object-cover rounded-lg ml-4"
+                              className="w-34 h-34 object-cover rounded-lg ml-4"
                             />
                           )}
                         </div>
@@ -545,54 +545,50 @@ const handleSubmitReview = async (e: React.FormEvent) => {
                     <p className="text-gray-600">This guide hasn't shared any posts yet.</p>
                   </div>
                 ) : (
-                  <div className="grid gap-6">
+                  <div className="grid gap-3">
                     {posts.map((post) => (
-                      <div key={post._id} className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-all duration-200">
+                      <div
+                        key={post._id}
+                        className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-all duration-200"
+                      >
                         <h4 className="text-xl font-semibold text-gray-900 mb-3">{post.title}</h4>
                         <p className="text-gray-700 mb-4 leading-relaxed">{post.content}</p>
-                        
+
                         {post.images?.length > 0 && (
-                          <div className={`grid gap-2 mb-4 ${
-                            post.images.length === 1 ? 'grid-cols-1' :
-                            post.images.length === 2 ? 'grid-cols-2' :
-                            post.images.length === 3 ? 'grid-cols-2' : 'grid-cols-2'
-                          }`}>
+                          <div
+                            className={`grid gap-2 mb-4 ${
+                              post.images.length === 1
+                                ? 'grid-cols-1'
+                                : 'grid-cols-2'
+                            }`}
+                          >
                             {post.images.slice(0, 4).map((image, index) => (
                               <div
                                 key={index}
-                                className={`relative aspect-square ${
-                                  post.images.length === 3 && index === 0 ? 'row-span-2' : ''
+                                className={`relative rounded-md overflow-hidden ${
+                                  post.images.length === 3 && index === 0
+                                    ? 'row-span-2 h-60'
+                                    : 'h-48'
                                 }`}
                               >
                                 <img
                                   src={image}
                                   alt={`Post ${index}`}
-                                  className="w-full h-full object-cover rounded-md hover:scale-105 transition-transform duration-300"
+                                  className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                                  loading="lazy"
                                 />
                               </div>
                             ))}
                           </div>
                         )}
-                        
-                        <div className="flex items-center justify-between text-sm text-gray-500">
-                          <div className="flex items-center space-x-6">
-                            <span className="flex items-center space-x-2">
-                              <Heart className="w-4 h-4 text-red-400" />
-                              <span>{post.likes?.length || 0} likes</span>
-                            </span>
-                            <span className="flex items-center space-x-2">
-                              <MessageCircle className="w-4 h-4 text-blue-400" />
-                              <span>{post.comments?.length || 0} comments</span>
-                            </span>
-                          </div>
-                          <span>{new Date(post.createdAt).toLocaleDateString()}</span>
-                        </div>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
             )}
+
+
 
             {/* Reviews Tab */}
             {activeTab === 'reviews' && (

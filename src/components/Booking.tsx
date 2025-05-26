@@ -115,10 +115,10 @@ const Booking: React.FC = () => {
         };
         
         const response = await axios.get(url, config);
-        setTrip(response.data);
+        setTrip(response.data.trip);
         setBookingData(prev => ({
           ...prev,
-          tripId: response.data._id
+          tripId: response.data.trip._id
         }));
         setError(null);
       } catch (error) {
@@ -199,7 +199,7 @@ const Booking: React.FC = () => {
         ...bookingData,
         scheduledDate: new Date(bookingData.scheduledDate).toISOString()
       };
-      console.log(formattedData);
+      console.log(formattedData)
        await axios.post(
         `${API_URL}/booking/${trip?._id}`,
         formattedData,
