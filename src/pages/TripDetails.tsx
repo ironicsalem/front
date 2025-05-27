@@ -36,6 +36,11 @@ interface Trip {
   description: string;
   type: string;
   createdAt: string;
+  startLocation: {
+    type: "Point";
+    coordinates: [number, number]; // [lng, lat]
+    description: string;
+  };
 }
 
 interface GuideUser {
@@ -67,8 +72,7 @@ const TripDetail: React.FC = () => {
         const config = {
           headers: token ? { Authorization: `Bearer ${token}` } : {}
         };
-        
-        const response = await axios.get<TripResponse>(url, config);
+        const response = await axios.get<TripResponse>(url, config);       
         setTrip(response.data.trip);
         console.log(response.data.trip._id)
 
@@ -289,6 +293,22 @@ const TripDetail: React.FC = () => {
                 </div>
               </div>
             </section>
+            {trip.startLocation && trip.startLocation.coordinates && (
+  <div className="bg-white rounded-xl shadow-sm p-6 mt-6">
+    <h2 className="text-2xl font-bold text-gray-800 mb-4">Starting Point</h2>
+    <p className="text-gray-700 mb-4">
+      This trip starts at a specific location. You can view it on the map.
+    </p>
+    <a
+      href={`https://www.google.com/maps?q=${trip.startLocation.coordinates[1]},${trip.startLocation.coordinates[0]}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-block px-6 py-3 bg-amber-500 text-white font-semibold rounded-lg shadow-md hover:bg-amber-600 transition-colors"
+    >
+      See the Starting Point
+    </a>
+  </div>
+)}
 
             {/* Locations Section */}
             <section className="bg-white rounded-xl shadow-sm p-6">

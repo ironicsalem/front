@@ -33,7 +33,14 @@ export interface TripData {
   schedule: Schedule[];
   path: Location[];
   image?: File | null;
+
+  startLocation: {
+    type: "Point";
+    coordinates: [number, number]; // [lng, lat]
+    description: string;
+  };
 }
+
 
 const CreateTrip: React.FC = () => {
   const navigate = useNavigate();
@@ -47,7 +54,12 @@ const CreateTrip: React.FC = () => {
     type: '',
     schedule: [],
     path: [],
-    image: null
+    image: null,
+    startLocation: {
+    type: "Point",
+    coordinates: [0, 0], 
+    description: ''
+  }
   });
 
   // Update trip data function with proper typing
@@ -158,7 +170,8 @@ const CreateTrip: React.FC = () => {
       formData.append('type', tripData.type);
       formData.append('schedule', JSON.stringify(tripData.schedule));
       formData.append('path', JSON.stringify(tripData.path));
-      
+      formData.append('startLocation', JSON.stringify(tripData.startLocation));
+
       if (tripData.image) {
         formData.append('image', tripData.image);
       }

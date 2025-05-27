@@ -273,51 +273,7 @@ const CityPage: React.FC = () => {
             )}
           </div>
         </section>
-
-        {/* Activities Section */}
-        <section className="py-20 bg-white">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-3xl font-bold mb-12 text-center relative inline-block">
-              <span className="relative z-10 px-4 bg-white">
-                Things to Do in {city?.name}
-              </span>
-              <span className="absolute bottom-0 left-0 right-0 mx-auto w-3/4 h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent z-0"></span>
-            </h2>
-
-            {Array.isArray(city?.activities) && city.activities.length > 0 ? (
-              <div className="relative max-w-5xl mx-auto">
-                <Swiper
-                  modules={[Autoplay]}
-                  spaceBetween={40}
-                  slidesPerView={1}
-                  centeredSlides={true}
-                  loop={true}
-                  autoplay={{
-                    delay: 3000,
-                    disableOnInteraction: false,
-                  }}
-                  className="rounded-3xl"
-                >
-                  {city.activities.map((activity: string, index: number) => (
-                    <SwiperSlide key={`${activity}-${index}`}>
-                      <div className="bg-white border border-amber-100 rounded-2xl p-12 shadow-lg hover:shadow-xl transition-shadow h-64 flex items-center justify-center relative overflow-hidden group">
-                        <div className="absolute inset-0 bg-gradient-to-r from-amber-50/50 to-amber-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                        <p className="text-gray-700 text-xl md:text-2xl text-center font-medium relative z-10">
-                          {activity}
-                        </p>
-                      </div>
-                    </SwiperSlide>
-                  ))}
-                </Swiper>
-              </div>
-            ) : (
-              <div className="text-center text-lg text-gray-600 py-12 bg-white rounded-xl max-w-2xl mx-auto p-8 border border-amber-100 shadow-sm">
-                Activities for this city will be added soon. Stay tuned!
-              </div>
-            )}
-          </div>
-        </section>
-
+        
         {/* Gallery Section */}
         <section className="py-20 bg-gradient-to-br from-blue-50 to-amber-50">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -379,6 +335,50 @@ const CityPage: React.FC = () => {
             </div>
           </div>
         </section>
+        {/* Activities Section */}
+        <section className="py-20 bg-white">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-3xl font-bold mb-12 text-center relative inline-block">
+              <span className="relative z-10 px-4 bg-white">
+                Things to Do in {city?.name}
+              </span>
+              <span className="absolute bottom-0 left-0 right-0 mx-auto w-3/4 h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent z-0"></span>
+            </h2>
+
+            {Array.isArray(city?.activities) && city.activities.length > 0 ? (
+              <div className="relative max-w-5xl mx-auto">
+                <Swiper
+                  modules={[Autoplay]}
+                  spaceBetween={40}
+                  slidesPerView={1}
+                  centeredSlides={true}
+                  loop={true}
+                  autoplay={{
+                    delay: 3000,
+                    disableOnInteraction: false,
+                  }}
+                  className="rounded-3xl"
+                >
+                  {city.activities.map((activity: string, index: number) => (
+                    <SwiperSlide key={`${activity}-${index}`}>
+                      <div className="bg-white border border-amber-100 rounded-2xl p-12 shadow-lg hover:shadow-xl transition-shadow h-64 flex items-center justify-center relative overflow-hidden group">
+                        <div className="absolute inset-0 bg-gradient-to-r from-amber-50/50 to-amber-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                        <p className="text-gray-700 text-xl md:text-2xl text-center font-medium relative z-10">
+                          {activity}
+                        </p>
+                      </div>
+                    </SwiperSlide>
+                  ))}
+                </Swiper>
+              </div>
+            ) : (
+              <div className="text-center text-lg text-gray-600 py-12 bg-white rounded-xl max-w-2xl mx-auto p-8 border border-amber-100 shadow-sm">
+                Activities for this city will be added soon. Stay tuned!
+              </div>
+            )}
+          </div>
+        </section>
+
       </div>
 
       {/* Footer */}

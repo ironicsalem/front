@@ -25,6 +25,11 @@ interface Booking {
     imageUrl?: string;
     price?: number;
     path?: { name: string }[];
+     startLocation: {
+    type: "Point";
+    coordinates: [number, number]; // [lng, lat]
+    description: string;
+  }
   };
 }
 
@@ -219,7 +224,20 @@ const renderBookings = () => (
                     </div>
                   )}
                 </div>
-
+                              {booking.trip.startLocation && booking.trip.startLocation.coordinates && (
+                <div className="bg-white rounded-xl shadow-sm p-6 mt-6">
+                  
+                  <a
+                    href={`https://www.google.com/maps?q=${booking.trip.startLocation.coordinates[1]},${booking.trip.startLocation.coordinates[0]}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block px-4 py-2 bg-amber-500 text-sm text-white font-medium rounded-md shadow-sm hover:bg-amber-600 transition-colors"
+                  >
+                    View the starting point on Map
+                  </a>
+                </div>
+              )}
+  
                 {/* Delete Button */}
                 <div className="mt-4 self-end">
                   <button
