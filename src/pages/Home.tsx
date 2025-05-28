@@ -136,6 +136,49 @@ const Home: React.FC = () => {
           </div>
         </div>
       </section>
+
+          {/* Become a Guide Section */}
+        <section className="mb-20 rounded-2xl overflow-hidden shadow-2xl   ">
+          <div className="flex flex-col md:flex-row bg-gradient-to-br from-amber-50 to-blue-50">
+            <div className="w-full md:w-1/2 h-98 relative">
+              <img 
+                src="/group.jpg" 
+                alt="Local guides with tourists"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = '/group.jpg';
+                }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent md:bg-gradient-to-l" />
+            </div>
+
+            <div className="w-full md:w-1/2 p-12 md:p-16 flex flex-col justify-center">
+              <div className="max-w-lg mx-auto">
+                <h2 className="text-3xl font-bold mb-6 text-gray-800">
+                  Become a Local Guide
+                </h2>
+                <p className="text-xl mb-8 text-gray-700">
+                  Are you passionate about Jordan's rich heritage? Join our network of local guides and share your knowledge with travelers from around the world.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-5">
+                  <button 
+                    onClick={() => navigate('/apply')}
+                    className="bg-amber-600 hover:bg-amber-700 text-white px-8 py-4 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 shadow-lg text-lg"
+                  >
+                    Apply Now
+                  </button>
+                  <Link 
+                    to="/about"
+                    className="border-2 border-amber-600 text-amber-700 hover:bg-amber-50 px-8 py-4 rounded-xl font-medium transition-all duration-300 text-center text-lg"
+                  >
+                    Learn More
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
         {/* About Jordan Section */}
         <section className="mb-20 px-4 sm:px-6 lg:px-8">
           <div className="relative bg-white rounded-xl overflow-hidden shadow-lg border border-gray-100">
@@ -182,48 +225,6 @@ const Home: React.FC = () => {
           </div>
         </section>
 
-        {/* Become a Guide Section */}
-        <section className="mb-20 rounded-2xl overflow-hidden shadow-2xl   ">
-          <div className="flex flex-col md:flex-row bg-gradient-to-br from-amber-50 to-blue-50">
-            <div className="w-full md:w-1/2 h-98 relative">
-              <img 
-                src="/group.jpg" 
-                alt="Local guides with tourists"
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = '/group.jpg';
-                }}
-              />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent md:bg-gradient-to-l" />
-            </div>
-
-            <div className="w-full md:w-1/2 p-12 md:p-16 flex flex-col justify-center">
-              <div className="max-w-lg mx-auto">
-                <h2 className="text-3xl font-bold mb-6 text-gray-800">
-                  Become a Local Guide
-                </h2>
-                <p className="text-xl mb-8 text-gray-700">
-                  Are you passionate about Jordan's rich heritage? Join our network of local guides and share your knowledge with travelers from around the world.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-5">
-                  <button 
-                    onClick={() => navigate('/apply')}
-                    className="bg-amber-600 hover:bg-amber-700 text-white px-8 py-4 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 shadow-lg text-lg"
-                  >
-                    Apply Now
-                  </button>
-                  <Link 
-                    to="/about"
-                    className="border-2 border-amber-600 text-amber-700 hover:bg-amber-50 px-8 py-4 rounded-xl font-medium transition-all duration-300 text-center text-lg"
-                  >
-                    Learn More
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
 
         {/* Testimonials Section */}
         <section className="mb-24">

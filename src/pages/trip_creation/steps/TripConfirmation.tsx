@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { TripData } from '../CreateTrip';
 import { useNavigate } from 'react-router-dom';
 
@@ -13,18 +13,35 @@ const TripConfirmation: React.FC<TripConfirmationProps> = ({
   handleSubmit,
   loading
 }) => {
+  const [notification, setNotification] = useState<{
+    message: string;
+    type: 'success' | 'error';
+    show: boolean;
+  }>({ message: '', type: 'success', show: false });
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const navigate = useNavigate();
+
   // Safely initialize with default values
   const safeTripData = {
     ...tripData,
-    path: tripData.path || [], // Ensure path is always an array
-    schedule: tripData.schedule || [] // Ensure schedule is always an array
+    path: tripData.path || [],
+    schedule: tripData.schedule || []
   };
 
-  // Generate image preview URL if image exists
-  const imagePreview = safeTripData.image 
-    ? URL.createObjectURL(safeTripData.image) 
-    : null;
-  
+  // Handle image preview and cleanup
+  useEffect(() => {
+    if (tripData.image) {
+      const preview = URL.createObjectURL(tripData.image);
+      setImagePreview(preview);
+      
+      return () => {
+        URL.revokeObjectURL(preview);
+      };
+    } else {
+      setImagePreview(null);
+    }
+  }, [tripData.image]);
+
   // Format date for display
   const formatDate = (date: Date): string => {
     return date.toLocaleDateString('en-US', {
@@ -43,13 +60,53 @@ const TripConfirmation: React.FC<TripConfirmationProps> = ({
     acc[dateString].push(item);
     return acc;
   }, {} as Record<string, typeof safeTripData.schedule>);
-  const navigate = useNavigate();
+
+  const showNotification = (message: string, type: 'success' | 'error') => {
+    setNotification({ message, type, show: true });
+    setTimeout(() => {
+      setNotification(prev => ({ ...prev, show: false }));
+      if (type === 'success') {
+        navigate('/account');
+      }
+    }, 3000);
+  };
+
+  const handleCreateTrip = async () => {
+    try {
+      await handleSubmit();
+      // Only show success if no error was thrown
+      showNotification('Trip created successfully!', 'success');
+    } catch (error: any) {
+      // Check for axios error structure
+      let errorMessage = 'Failed to create trip';
+      
+      if (error.response) {
+        // Handle axios response errors
+        errorMessage = error.response.data?.message || error.response.statusText;
+      } else if (error.message) {
+        // Handle other errors
+        errorMessage = error.message;
+      }
+      
+      showNotification(errorMessage, 'error');
+    }
+  };
 
   return (
-    <div>
+    <div className="relative">
+      {/* Notification */}
+      {notification.show && (
+        <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded-md shadow-lg ${
+          notification.type === 'success' 
+            ? 'bg-green-100 text-green-800 border border-green-200' 
+            : 'bg-red-100 text-red-800 border border-red-200'
+        }`}>
+          {notification.message}
+        </div>
+      )}
+
       <h2 className="text-2xl font-medium mb-6">Trip Confirmation</h2>
       
-      {/* Trip Summary */}
       <div className="space-y-6">
         {/* Title and City */}
         <div className="flex items-center justify-between">
@@ -130,11 +187,7 @@ const TripConfirmation: React.FC<TripConfirmationProps> = ({
         
         {/* Submit Button */}
         <button
-          onClick={async () => {
-            await handleSubmit();
-            alert('Trip created successfully!'); 
-            navigate('/account');
-          }}
+          onClick={handleCreateTrip}
           disabled={loading}
           className="w-full mt-4 bg-orange-400 text-white rounded-lg py-3 hover:bg-orange-500 transition disabled:bg-orange-300"
         >

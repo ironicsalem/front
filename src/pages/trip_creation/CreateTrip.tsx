@@ -157,53 +157,45 @@ const CreateTrip: React.FC = () => {
   };
 
   // Submit function
-  const handleSubmit = async (): Promise<void> => {
-    try {
-      setLoading(true);
-      
-      // Create form data
-      const formData = new FormData();
-      formData.append('title', tripData.title || `${tripData.city} Trip`);
-      formData.append('city', tripData.city);
-      formData.append('price', tripData.price.toString());
-      formData.append('description', tripData.description);
-      formData.append('type', tripData.type);
-      formData.append('schedule', JSON.stringify(tripData.schedule));
-      formData.append('path', JSON.stringify(tripData.path));
-      formData.append('startLocation', JSON.stringify(tripData.startLocation));
+ const handleSubmit = async (): Promise<void> => {
+  try {
+    setLoading(true);
+    
+    const formData = new FormData();
+    formData.append('title', tripData.title || `${tripData.city} Trip`);
+    formData.append('city', tripData.city);
+    formData.append('price', tripData.price.toString());
+    formData.append('description', tripData.description);
+    formData.append('type', tripData.type);
+    formData.append('schedule', JSON.stringify(tripData.schedule));
+    formData.append('path', JSON.stringify(tripData.path));
+    formData.append('startLocation', JSON.stringify(tripData.startLocation));
 
-      if (tripData.image) {
-        formData.append('image', tripData.image);
-      }
-  
-      // Make the API call
-      const response = await axios.post('http://localhost:5000/trip/create', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
-      });
-      
-      // Handle success...
-    } catch (error) {
-      console.error('Error:', error);
-      if (axios.isAxiosError(error)) {
-        if (error.response) {
-          console.log('Server responded with:', error.response.status);
-          console.log('Response data:', error.response.data);
-        } else if (error.request) {
-          console.log('No response received:', error.request);
-        } else {
-          console.log('Request setup error:', error.message);
-        }
-        toast.error(error.response?.data?.message || 'Failed to create trip');
-      } else {
-        toast.error('An unexpected error occurred');
-      }
-    } finally {
-      setLoading(false);
+    if (tripData.image) {
+      formData.append('image', tripData.image);
     }
-  };
+
+    const response = await axios.post('http://localhost:5000/trip/create', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+      },
+      // This ensures axios doesn't throw on 404 errors
+      validateStatus: (status) => status < 500
+    });
+
+    // Explicitly check for error status codes
+    if (response.status >= 400) {
+      throw new Error(response.data.message || `Request failed with status ${response.status}`);
+    }
+    
+  } catch (error) {
+    // Re-throw the error to be caught by TripConfirmation
+    throw error;
+  } finally {
+    setLoading(false);
+  }
+};
   // Render the current step
   const renderStep = () => {
     switch (currentStep) {

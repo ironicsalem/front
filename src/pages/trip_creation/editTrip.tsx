@@ -206,7 +206,7 @@ const EditTrip = () => {
             Authorization: `Bearer ${localStorage.getItem('authToken')}`
           }
         });
-        navigate('/guide/trips');
+        navigate('/account');
       } catch (err) {
         setError('Failed to delete trip');
         console.error(err);
