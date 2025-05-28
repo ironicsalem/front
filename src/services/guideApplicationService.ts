@@ -1,5 +1,6 @@
-// API service for guide applications
+import axios from 'axios';
 
+// Types
 export interface Application {
   _id: string;
   userId: string;
@@ -23,87 +24,103 @@ export interface ApplicationFormData {
   nationalIdPicture: File;
 }
 
-class GuideApplicationService {
-  private baseUrl = '/api';
+export interface ApplicationStatusInfo {
+  color: 'yellow' | 'green' | 'red' | 'gray';
+  icon: string;
+  title: string;
+  description: string;
+}
 
-  private getAuthHeaders() {
+export interface SubmissionEligibility {
+  canSubmit: boolean;
+  reason?: string;
+}
+
+export interface ApiResponse<T> {
+  message: string;
+  data?: T;
+}
+
+export interface FormOptions {
+  languages: string[];
+  specialties: string[];
+  cities: string[];
+}
+
+const API_URL = 'http://localhost:3000/tourist';
+
+// Set up axios instance with default headers
+const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Intercept requests to add auth token
+api.interceptors.request.use(
+  (config) => {
     const token = localStorage.getItem('token');
-    if (!token) {
-      throw new Error('No authentication token found');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
-    return {
-      'Authorization': `Bearer ${token}`
-    };
-  }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
-  /**
-   * Fetch the current user's application
-   */
-  async getMyApplication(): Promise<Application | null> {
+// Utility function to create FormData for file uploads
+const createApplicationFormData = (data: ApplicationFormData): FormData => {
+  const formData = new FormData();
+  
+  formData.append('city', data.city);
+  formData.append('languages', JSON.stringify(data.languages));
+  formData.append('specialties', JSON.stringify(data.specialties));
+  formData.append('nationalId', data.nationalId);
+  formData.append('behavioralCertificate', data.behavioralCertificate);
+  formData.append('nationalIdPicture', data.nationalIdPicture);
+  
+  return formData;
+};
+
+const GuideApplicationService = {
+  // Get the current user's application - matches GET /applications/myApplication
+  getMyApplication: async (): Promise<Application | null> => {
     try {
-      const response = await fetch(`${this.baseUrl}/tourist/applications/myApplication`, {
-        method: 'GET',
-        headers: {
-          ...this.getAuthHeaders(),
-          'Content-Type': 'application/json'
+      const response = await api.get('/applications/myApplication');
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        if (error.response.status === 404) {
+          // No application found - this is expected for users who haven't applied
+          return null;
         }
-      });
-
-      if (response.status === 404) {
-        // No application found - this is expected for users who haven't applied
-        return null;
+        throw new Error(error.response.data.message || 'Failed to fetch application');
       }
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching application:', error);
-      throw error;
+      throw new Error('Network error occurred');
     }
-  }
+  },
 
-  /**
-   * Submit a new guide application
-   */
-  async submitApplication(formData: ApplicationFormData): Promise<{ message: string }> {
+  // Submit a new guide application - matches POST /apply
+  submitApplication: async (formData: ApplicationFormData): Promise<ApiResponse<null>> => {
     try {
-      const submitFormData = new FormData();
-      
-      // Append form fields
-      submitFormData.append('city', formData.city);
-      submitFormData.append('languages', JSON.stringify(formData.languages));
-      submitFormData.append('specialties', JSON.stringify(formData.specialties));
-      submitFormData.append('nationalId', formData.nationalId);
-      submitFormData.append('behavioralCertificate', formData.behavioralCertificate);
-      submitFormData.append('nationalIdPicture', formData.nationalIdPicture);
-
-      const response = await fetch(`${this.baseUrl}/tourist/apply`, {
-        method: 'POST',
-        headers: this.getAuthHeaders(),
-        body: submitFormData
+      const submitFormData = createApplicationFormData(formData);
+      const response = await api.post('/apply', submitFormData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
-
-      const responseData = await response.json();
-
-      if (!response.ok) {
-        throw new Error(responseData.message || `HTTP error! status: ${response.status}`);
-      }
-
-      return responseData;
+      return response.data;
     } catch (error) {
-      console.error('Error submitting application:', error);
-      throw error;
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(error.response.data.message || 'Failed to submit application');
+      }
+      throw new Error('Network error occurred');
     }
-  }
+  },
 
-  /**
-   * Validate form data before submission
-   */
-  validateApplicationForm(formData: Partial<ApplicationFormData>): string[] {
+  // Validate form data before submission
+  validateApplicationForm: (formData: Partial<ApplicationFormData>): string[] => {
     const errors: string[] = [];
 
     if (!formData.city?.trim()) {
@@ -149,12 +166,10 @@ class GuideApplicationService {
     }
 
     return errors;
-  }
+  },
 
-  /**
-   * Get available options for form fields
-   */
-  getFormOptions() {
+  // Get available options for form fields
+  getFormOptions: (): FormOptions => {
     return {
       languages: [
         'Arabic', 'English', 'French', 'German', 'Spanish', 
@@ -172,12 +187,10 @@ class GuideApplicationService {
         'Wadi Rum', 'Dead Sea'
       ]
     };
-  }
+  },
 
-  /**
-   * Format application status for display
-   */
-  getStatusInfo(status: Application['status']) {
+  // Format application status for display
+  getStatusInfo: (status: Application['status']): ApplicationStatusInfo => {
     switch (status) {
       case 'pending':
         return {
@@ -208,12 +221,10 @@ class GuideApplicationService {
           description: 'Please contact support for assistance.'
         };
     }
-  }
+  },
 
-  /**
-   * Check if user can submit a new application
-   */
-  canSubmitNewApplication(existingApplication: Application | null): { canSubmit: boolean; reason?: string } {
+  // Check if user can submit a new application
+  canSubmitNewApplication: (existingApplication: Application | null): SubmissionEligibility => {
     if (!existingApplication) {
       return { canSubmit: true };
     }
@@ -246,11 +257,64 @@ class GuideApplicationService {
     }
 
     return { canSubmit: true };
+  },
+
+  // Format application for display
+  formatApplicationForDisplay: (application: Application): Application & {
+    formattedSubmissionDate: string;
+    formattedLanguages: string;
+    formattedSpecialties: string;
+    statusInfo: ApplicationStatusInfo;
+  } => {
+    return {
+      ...application,
+      formattedSubmissionDate: new Date(application.createdAt).toLocaleDateString(),
+      formattedLanguages: application.languages.join(', '),
+      formattedSpecialties: application.specialties.join(', '),
+      statusInfo: GuideApplicationService.getStatusInfo(application.status),
+    };
+  },
+
+  // Check file type validity
+  isValidFileType: (file: File, allowedTypes: string[]): boolean => {
+    return allowedTypes.includes(file.type);
+  },
+
+  // Check file size validity
+  isValidFileSize: (file: File, maxSizeMB: number = 5): boolean => {
+    const maxSizeBytes = maxSizeMB * 1024 * 1024;
+    return file.size <= maxSizeBytes;
+  },
+
+  // Get file size in human readable format
+  getFileSizeString: (file: File): string => {
+    const sizeMB = file.size / (1024 * 1024);
+    if (sizeMB < 1) {
+      return `${(file.size / 1024).toFixed(1)} KB`;
+    }
+    return `${sizeMB.toFixed(1)} MB`;
+  },
+
+  // Get days remaining for reapplication (for rejected applications)
+  getDaysUntilReapplication: (application: Application): number => {
+    if (application.status !== 'rejected') return 0;
+    
+    const rejectionDate = new Date(application.updatedAt || application.createdAt);
+    const daysSinceRejection = Math.floor((Date.now() - rejectionDate.getTime()) / (1000 * 60 * 60 * 24));
+    const daysRemaining = 30 - daysSinceRejection;
+    
+    return Math.max(0, daysRemaining);
+  },
+
+  // Check if user is authenticated
+  isAuthenticated: (): boolean => {
+    return !!localStorage.getItem('token');
+  },
+
+  // Get the auth token
+  getToken: (): string | null => {
+    return localStorage.getItem('token');
   }
-}
+};
 
-// Export singleton instance
-export const guideApplicationService = new GuideApplicationService();
-
-// Export for testing or custom instances
 export default GuideApplicationService;

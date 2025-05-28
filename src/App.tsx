@@ -30,7 +30,7 @@ import Bookings from "./pages/account/Bookings";
 import MyProfile from "./pages/profile/MyProfile";
 
 // Services
-import AuthService from "./services/AuthService";
+import authService from "./services/AuthService";
 
 // Protected route wrapper component
 const ProtectedRoute = ({

@@ -1,6 +1,7 @@
 // TripSchedule.tsx
 import React, { useState } from 'react';
 import { TripData, Schedule } from '../CreateTrip';
+import TripService from '../../../services/TripService';
 
 interface TripScheduleProps {
   tripData: TripData;
@@ -14,6 +15,7 @@ const TripSchedule: React.FC<TripScheduleProps> = ({ tripData, updateTripData })
   const [showModal, setShowModal] = useState<boolean>(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTimeSlots, setSelectedTimeSlots] = useState<string[]>([]);
+  const [validationError, setValidationError] = useState<string>('');
   
   // Time slot options
   const timeSlots = [
@@ -29,6 +31,42 @@ const TripSchedule: React.FC<TripScheduleProps> = ({ tripData, updateTripData })
   // Generate years array (current year + 5 years into the future)
   const currentYear = today.getFullYear();
   const years = Array.from({ length: 6 }, (_, i) => currentYear + i);
+  
+  // Validate schedule using TripService
+  const validateSchedule = (schedule: Schedule[]): string | null => {
+    if (schedule.length === 0) {
+      return 'At least one schedule item is required';
+    }
+    
+    // Create a minimal trip data object for validation
+    const validationData = {
+      title: 'temp',
+      city: tripData.city || 'temp',
+      price: tripData.price || 1,
+      description: tripData.description || 'temp description',
+      type: tripData.type || 'Cultural',
+      schedule: schedule,
+      path: tripData.path || [],
+      startLocation: {
+        type: 'Point' as const,
+        coordinates: [35.8900, 32.2800] as [number, number]
+      }
+    };
+
+    const validationErrors = TripService.validateTripData(validationData);
+    const scheduleError = validationErrors.find(error => 
+      error.toLowerCase().includes('schedule')
+    );
+    
+    return scheduleError || null;
+  };
+
+  // Update schedule with validation
+  const updateScheduleWithValidation = (newSchedule: Schedule[]) => {
+    const error = validateSchedule(newSchedule);
+    setValidationError(error || '');
+    updateTripData({ schedule: newSchedule });
+  };
   
   // Navigation functions
   const goToPreviousMonth = () => {
@@ -115,12 +153,13 @@ const TripSchedule: React.FC<TripScheduleProps> = ({ tripData, updateTripData })
   const toggleTimeSlot = (date: Date, time: string): void => {
     if (!date) return;
     
+    let updatedSchedule: Schedule[];
+    
     if (isTimeSlotSelected(date, time)) {
       // Remove this time slot
-      const updatedSchedule = tripData.schedule.filter(
+      updatedSchedule = tripData.schedule.filter(
         s => !(s.date.toDateString() === date.toDateString() && s.time === time)
       );
-      updateTripData({ schedule: updatedSchedule });
     } else {
       // Add this time slot
       const newScheduleItem: Schedule = {
@@ -128,10 +167,10 @@ const TripSchedule: React.FC<TripScheduleProps> = ({ tripData, updateTripData })
         time,
         isAvailable: true
       };
-      updateTripData({
-        schedule: [...tripData.schedule, newScheduleItem]
-      });
+      updatedSchedule = [...tripData.schedule, newScheduleItem];
     }
+    
+    updateScheduleWithValidation(updatedSchedule);
   };
   
   // Format date for display
@@ -159,6 +198,14 @@ const TripSchedule: React.FC<TripScheduleProps> = ({ tripData, updateTripData })
     return grouped;
   };
   
+  // Remove all schedule items for a specific date
+  const removeAllScheduleForDate = (dateString: string): void => {
+    const updatedSchedule = tripData.schedule.filter(
+      item => item.date.toDateString() !== dateString
+    );
+    updateScheduleWithValidation(updatedSchedule);
+  };
+  
   const scheduledDates = groupScheduleByDate();
   const calendarDays = generateCalendarDays();
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -177,22 +224,55 @@ const TripSchedule: React.FC<TripScheduleProps> = ({ tripData, updateTripData })
     return date < today;
   };
 
+  // Handle modal save with validation
+  const handleModalSave = (): void => {
+    if (!selectedDate) return;
+    
+    let updatedSchedule = [...tripData.schedule];
+    
+    // Remove existing time slots for this date
+    updatedSchedule = updatedSchedule.filter(
+      s => s.date.toDateString() !== selectedDate.toDateString()
+    );
+    
+    // Add selected time slots
+    selectedTimeSlots.forEach(time => {
+      const newScheduleItem: Schedule = {
+        date: new Date(selectedDate),
+        time,
+        isAvailable: true
+      };
+      updatedSchedule.push(newScheduleItem);
+    });
+    
+    updateScheduleWithValidation(updatedSchedule);
+    
+    // Close modal and reset
+    setShowModal(false);
+    setSelectedTimeSlots([]);
+  };
+
   return (
     <div>
       <h2 className="text-2xl font-medium mb-6">Trip Schedule</h2>
       
-      <p className="text-gray-600 mb-4">
-        Select dates and times for your trip schedule.
-        {tripData.schedule.length === 0 && (
-          <span className="text-red-500 ml-1">At least one scheduled time is required.</span>
+      <div className="mb-4">
+        <p className="text-gray-600">
+          Select dates and times for your trip schedule.
+        </p>
+        {validationError && (
+          <p className="text-red-500 mt-2 font-medium">{validationError}</p>
         )}
-      </p>
+        {tripData.schedule.length === 0 && !validationError && (
+          <p className="text-red-500 mt-2">At least one scheduled time is required.</p>
+        )}
+      </div>
       
       {/* Month/Year Selector */}
       <div className="flex items-center justify-between mb-6 bg-white p-3 rounded-md border border-gray-200">
         <button
           onClick={goToPreviousMonth}
-          className="p-2 rounded-full hover:bg-gray-100"
+          className="p-2 rounded-full hover:bg-gray-100 transition-colors"
           title="Previous Month"
         >
           <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -204,7 +284,7 @@ const TripSchedule: React.FC<TripScheduleProps> = ({ tripData, updateTripData })
           <select 
             value={viewDate.getMonth()}
             onChange={handleMonthChange}
-            className="px-2 py-1 border border-gray-300 rounded"
+            className="px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-orange-300"
           >
             {months.map((month, index) => (
               <option key={month} value={index}>{month}</option>
@@ -214,7 +294,7 @@ const TripSchedule: React.FC<TripScheduleProps> = ({ tripData, updateTripData })
           <select 
             value={viewDate.getFullYear()}
             onChange={handleYearChange}
-            className="px-2 py-1 border border-gray-300 rounded"
+            className="px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-orange-300"
           >
             {years.map(year => (
               <option key={year} value={year}>{year}</option>
@@ -224,7 +304,7 @@ const TripSchedule: React.FC<TripScheduleProps> = ({ tripData, updateTripData })
         
         <button
           onClick={goToNextMonth}
-          className="p-2 rounded-full hover:bg-gray-100"
+          className="p-2 rounded-full hover:bg-gray-100 transition-colors"
           title="Next Month"
         >
           <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -236,9 +316,9 @@ const TripSchedule: React.FC<TripScheduleProps> = ({ tripData, updateTripData })
       {/* Calendar Grid */}
       <div className="bg-white rounded-md border border-gray-200 overflow-hidden mb-6">
         {/* Day headers */}
-        <div className="grid grid-cols-7 border-b">
+        <div className="grid grid-cols-7 border-b bg-gray-50">
           {dayNames.map(day => (
-            <div key={day} className="p-2 text-center text-sm font-medium text-gray-500">
+            <div key={day} className="p-2 text-center text-sm font-medium text-gray-600">
               {day}
             </div>
           ))}
@@ -249,17 +329,26 @@ const TripSchedule: React.FC<TripScheduleProps> = ({ tripData, updateTripData })
           {calendarDays.map((day, index) => (
             <div 
               key={index} 
-              className={`p-1 min-h-[80px] border-b border-r ${!day || isPastDate(day) ? 'bg-gray-50' : 'hover:bg-orange-50'}`}
+              className={`p-1 min-h-[80px] border-b border-r last:border-r-0 ${
+                !day || isPastDate(day) 
+                  ? 'bg-gray-50' 
+                  : 'hover:bg-orange-50 transition-colors'
+              }`}
             >
               {day && (
                 <div 
-                  className={`relative ${isPastDate(day) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                  className={`relative ${
+                    isPastDate(day) 
+                      ? 'opacity-50 cursor-not-allowed' 
+                      : 'cursor-pointer'
+                  }`}
                 >
                   <div 
                     className={`
-                      text-right mb-1 p-1 rounded-full w-7 h-7 flex items-center justify-center ml-auto
+                      text-right mb-1 p-1 rounded-full w-7 h-7 flex items-center justify-center ml-auto text-sm font-medium
                       ${isToday(day) ? 'bg-blue-500 text-white' : ''}
                       ${hasScheduledTimes(day) && !isToday(day) ? 'bg-orange-400 text-white' : ''}
+                      ${!hasScheduledTimes(day) && !isToday(day) ? 'text-gray-700' : ''}
                     `}
                   >
                     {day.getDate()}
@@ -268,11 +357,16 @@ const TripSchedule: React.FC<TripScheduleProps> = ({ tripData, updateTripData })
                   {/* Scheduled time indicators */}
                   {hasScheduledTimes(day) && (
                     <div className="mt-1 flex flex-wrap gap-1">
-                      {getScheduledTimes(day).map((time, idx) => (
+                      {getScheduledTimes(day).slice(0, 2).map((time, idx) => (
                         <div key={idx} className="text-xs px-1 py-0.5 bg-orange-100 text-orange-800 rounded">
                           {time}
                         </div>
                       ))}
+                      {getScheduledTimes(day).length > 2 && (
+                        <div className="text-xs px-1 py-0.5 bg-orange-100 text-orange-800 rounded">
+                          +{getScheduledTimes(day).length - 2}
+                        </div>
+                      )}
                     </div>
                   )}
                   
@@ -300,11 +394,20 @@ const TripSchedule: React.FC<TripScheduleProps> = ({ tripData, updateTripData })
           <h3 className="text-lg font-medium mb-3">Selected Dates & Times</h3>
           <div className="space-y-3">
             {Object.entries(scheduledDates).map(([dateString, items]) => (
-              <div key={dateString} className="p-3 border border-gray-200 rounded-md">
-                <div className="font-medium text-gray-800">
-                  {formatDate(new Date(dateString))}
+              <div key={dateString} className="p-4 border border-gray-200 rounded-md bg-white">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="font-medium text-gray-800">
+                    {formatDate(new Date(dateString))}
+                  </div>
+                  <button
+                    onClick={() => removeAllScheduleForDate(dateString)}
+                    className="text-red-500 hover:text-red-700 text-sm transition-colors"
+                    title="Remove all times for this date"
+                  >
+                    Remove all
+                  </button>
                 </div>
-                <div className="mt-2 flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2">
                   {items.map((item, idx) => (
                     <div 
                       key={idx} 
@@ -312,7 +415,7 @@ const TripSchedule: React.FC<TripScheduleProps> = ({ tripData, updateTripData })
                     >
                       <span>{item.time}</span>
                       <button
-                        className="ml-2 text-orange-800 hover:text-orange-900"
+                        className="ml-2 text-orange-800 hover:text-orange-900 transition-colors"
                         onClick={() => toggleTimeSlot(item.date, item.time)}
                         title="Remove this time slot"
                       >
@@ -332,12 +435,15 @@ const TripSchedule: React.FC<TripScheduleProps> = ({ tripData, updateTripData })
       {/* Time slot modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-96 max-w-full">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-96 max-w-full mx-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-medium">Select Time Slots</h3>
               <button
-                className="p-1 text-gray-500 hover:text-gray-700"
-                onClick={() => setShowModal(false)}
+                className="p-1 text-gray-500 hover:text-gray-700 transition-colors"
+                onClick={() => {
+                  setShowModal(false);
+                  setSelectedTimeSlots([]);
+                }}
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -357,22 +463,23 @@ const TripSchedule: React.FC<TripScheduleProps> = ({ tripData, updateTripData })
               </div>
             </div>
             
-            <div className="mb-4">
+            <div className="mb-6">
               <div className="text-sm text-gray-500 mb-2">Available time slots:</div>
               <div className="grid grid-cols-3 gap-2">
                 {timeSlots.map(time => {
-                  const isSelected = selectedDate ? 
-                    isTimeSlotSelected(selectedDate, time) || selectedTimeSlots.includes(time) : 
-                    false;
+                  const isSelected = selectedTimeSlots.includes(time);
                     
                   return (
-                    <div 
+                    <button
                       key={time}
-                      className={`cursor-pointer border rounded-md p-2 text-center text-sm hover:bg-orange-50
-                        ${isSelected ? 'bg-orange-400 text-white' : ''}
+                      className={`border rounded-md p-2 text-center text-sm transition-colors
+                        ${isSelected 
+                          ? 'bg-orange-400 text-white border-orange-400' 
+                          : 'hover:bg-orange-50 border-gray-300'
+                        }
                       `}
                       onClick={() => {
-                        if (selectedTimeSlots.includes(time)) {
+                        if (isSelected) {
                           setSelectedTimeSlots(prev => prev.filter(t => t !== time));
                         } else {
                           setSelectedTimeSlots(prev => [...prev, time]);
@@ -380,7 +487,7 @@ const TripSchedule: React.FC<TripScheduleProps> = ({ tripData, updateTripData })
                       }}
                     >
                       {time}
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -388,7 +495,7 @@ const TripSchedule: React.FC<TripScheduleProps> = ({ tripData, updateTripData })
             
             <div className="flex justify-end gap-2">
               <button
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
                 onClick={() => {
                   setShowModal(false);
                   setSelectedTimeSlots([]);
@@ -397,30 +504,8 @@ const TripSchedule: React.FC<TripScheduleProps> = ({ tripData, updateTripData })
                 Cancel
               </button>
               <button
-                className="px-4 py-2 bg-orange-400 text-white rounded-md hover:bg-orange-500"
-                onClick={() => {
-                  if (selectedDate) {
-                    // Add or remove time slots
-                    selectedTimeSlots.forEach(time => {
-                      const alreadySelected = isTimeSlotSelected(selectedDate, time);
-                      if (!alreadySelected) {
-                        // Add this time slot
-                        const newScheduleItem: Schedule = {
-                          date: new Date(selectedDate),
-                          time,
-                          isAvailable: true
-                        };
-                        updateTripData({
-                          schedule: [...tripData.schedule, newScheduleItem]
-                        });
-                      }
-                    });
-                  }
-                  
-                  // Close modal and reset
-                  setShowModal(false);
-                  setSelectedTimeSlots([]);
-                }}
+                className="px-4 py-2 bg-orange-400 text-white rounded-md hover:bg-orange-500 transition-colors"
+                onClick={handleModalSave}
               >
                 Save
               </button>

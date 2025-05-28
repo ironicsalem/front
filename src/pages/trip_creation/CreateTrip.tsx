@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import axios from 'axios';
+import TripService, { CreateTripData } from '../../services/TripService';
 
 // Import step components
 import TripDetails from './steps/TripDetails';
@@ -21,7 +21,7 @@ export interface Schedule {
 
 export interface Location {
   name: string;
-  position: { lat: number; lng: number };
+  position: { lat?: number; lng?: number };
 }
 
 export interface TripData {
@@ -133,42 +133,54 @@ const CreateTrip: React.FC = () => {
     setTripData(prevData => ({ ...prevData, ...data }));
   };
 
-  // Navigation functions
-  // Validate current step data
+  // Validate current step data using TripService validation
   const validateStep = (stepNumber: number): boolean => {
     let isValid = true;
     
     switch (stepNumber) {
-      case 1:
-        if (!tripData.city || tripData.city.trim() === '') {
-          toast.error('Please enter a city name');
-          isValid = false;
-        }
-        if (!tripData.price || tripData.price <= 0) {
-          toast.error('Please enter a valid price');
-          isValid = false;
-        }
-        if (!tripData.type) {
-          toast.error('Please select a trip type');
-          isValid = false;
-        }
-        if (!tripData.description || tripData.description.length < 10) {
-          toast.error('Please enter a description (minimum 10 characters)');
+      case 1: {
+        const detailsErrors = TripService.validateTripData({
+          title: tripData.title,
+          city: tripData.city,
+          price: tripData.price,
+          description: tripData.description,
+          type: tripData.type,
+          schedule: [],
+          path: [],
+          startLocation: {
+            type: 'Point',
+            coordinates: [35.8900, 32.2800] // Default Jordan coordinates
+          }
+        });
+        
+        // Filter validation errors for step 1 fields
+        const step1Errors = detailsErrors.filter(error => 
+          error.includes('City') || 
+          error.includes('Price') || 
+          error.includes('Description') || 
+          error.includes('Type')
+        );
+        
+        if (step1Errors.length > 0) {
+          step1Errors.forEach(error => toast.error(error));
           isValid = false;
         }
         break;
-      case 2:
+      }
+      case 2: {
         if (tripData.schedule.length === 0) {
           toast.error('Please add at least one schedule time');
           isValid = false;
         }
         break;
-      case 3:
+      }
+      case 3: {
         if (tripData.path.length === 0) {
           toast.error('Please add at least one location to your trip path');
           isValid = false;
         }
         break;
+      }
       default:
         break;
     }
@@ -222,56 +234,66 @@ const CreateTrip: React.FC = () => {
     }
   };
 
-  // Submit function
+  // Submit function using TripService
   const handleSubmit = async (): Promise<void> => {
     try {
       setLoading(true);
       
+      // Check if user is authenticated
+      if (!TripService.isAuthenticated()) {
+        toast.error('You must be logged in to create a trip');
+        navigate('/login');
+        return;
+      }
+      
       // Set title if not provided
-      if (!tripData.title) {
-        tripData.title = `${tripData.city} Trip`;
+      const finalTitle = tripData.title.trim() || `${tripData.city} Trip`;
+      
+      // Convert the TripData to CreateTripData format expected by TripService
+      const createTripData: CreateTripData = {
+        title: finalTitle,
+        city: tripData.city,
+        price: tripData.price,
+        description: tripData.description,
+        type: tripData.type,
+        schedule: tripData.schedule,
+        path: tripData.path,
+        startLocation: {
+          type: 'Point',
+          coordinates: tripData.path.length > 0 && tripData.path[0].position.lng && tripData.path[0].position.lat
+            ? [tripData.path[0].position.lng, tripData.path[0].position.lat]
+            : [35.8900, 32.2800], // Default to Jordan coordinates if no path or coordinates
+          description: tripData.path.length > 0 ? `Starting at ${tripData.path[0].name}` : undefined
+        },
+        image: tripData.image || undefined
+      };
+      
+      // Validate the trip data before submitting
+      const validationErrors = TripService.validateTripData(createTripData);
+      if (validationErrors.length > 0) {
+        validationErrors.forEach(error => toast.error(error));
+        setLoading(false);
+        return;
       }
       
-      // Create FormData object to handle file upload
-      const formData = new FormData();
+      // Create the trip using TripService
+      const createdTrip = await TripService.createTrip(createTripData);
       
-      // Append all trip data to FormData
-      formData.append('title', tripData.title);
-      formData.append('city', tripData.city);
-      formData.append('price', tripData.price.toString());
-      formData.append('description', tripData.description);
-      formData.append('type', tripData.type);
+      console.log('Trip created successfully:', createdTrip);
       
-      // Convert schedule array to JSON string
-      formData.append('schedule', JSON.stringify(tripData.schedule));
-      
-      // Convert path array to JSON string
-      formData.append('path', JSON.stringify(tripData.path));
-      
-      // Add image if available
-      if (tripData.image) {
-        formData.append('image', tripData.image);
+      // Update the local tripData title if it was auto-generated
+      if (!tripData.title.trim()) {
+        setTripData(prev => ({ ...prev, title: finalTitle }));
       }
       
-      // Make API call to create trip
-      const response = await axios.post('http://localhost:3000/trip/create', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          // Include authorization if your auth token is stored in localStorage/sessionStorage
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      
-      console.log('Trip created:', response.data);
-      
-      // Show success modal instead of toast
+      // Show success modal
       setShowSuccessModal(true);
       
     } catch (error) {
       console.error('Error creating trip:', error);
-      if (axios.isAxiosError(error)) {
-        const errorMessage = error.response?.data?.message || 'Failed to create trip';
-        toast.error(errorMessage);
+      
+      if (error instanceof Error) {
+        toast.error(error.message);
       } else {
         toast.error('Failed to create trip. Please try again.');
       }

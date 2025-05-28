@@ -205,17 +205,6 @@ const UserService = {
       throw new Error('Network error occurred');
     }
   },
-
-  // REMOVED METHODS - These don't exist in your backend routes:
-  // - getPopulatedUserProfile
-  // - toggleLike (replaced with addLike)
-  // - deleteComment
-  // - getUserPosts
-  // - getPopulatedUserPosts  
-  // - getUserComments
-  // - getPopulatedUserComments
-  // - getUserReviews
-  // - getPopulatedUserReviews
 };
 
 export default UserService;

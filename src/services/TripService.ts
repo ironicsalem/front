@@ -1,3 +1,5 @@
+import axios from 'axios';
+
 // Types
 export interface Location {
   name: string;
@@ -74,21 +76,32 @@ export interface TripsResponse {
   hasNextPage: boolean;
 }
 
-// API Configuration
-const API_BASE_URL = 'http://localhost:3000';
-const TRIP_ENDPOINTS = {
-  CREATE: '/trip/create',
-  GET_ALL: '/trip/trips',
-  GET_BY_ID: (id: string) => `/trip/${id}`,
-  GET_FOR_GUIDE: (guideId: string) => `/trip/${guideId}/trips`,
-  UPDATE: (id: string) => `/trip/${id}`,
-  DELETE: (id: string) => `/trip/${id}`,
-};
+export interface ApiResponse<T> {
+  message: string;
+  data?: T;
+}
 
-// Utility function to get auth token
-const getAuthToken = (): string | null => {
-  return localStorage.getItem('token') || sessionStorage.getItem('token');
-};
+const API_URL = 'http://localhost:3000/trip';
+
+// Set up axios instance with default headers
+const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Intercept requests to add auth token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 // Utility function to create FormData for file uploads
 const createFormData = (data: CreateTripData | UpdateTripData): FormData => {
@@ -107,162 +120,109 @@ const createFormData = (data: CreateTripData | UpdateTripData): FormData => {
   return formData;
 };
 
-// Trip Service Class
-class TripService {
-  private baseUrl = API_BASE_URL;
-
-  // Create a new trip
-  async createTrip(tripData: CreateTripData): Promise<Trip> {
+const TripService = {
+  // Create a new trip - matches POST /create
+  createTrip: async (tripData: CreateTripData): Promise<Trip> => {
     try {
-      const token = getAuthToken();
-      if (!token) {
-        throw new Error('Authentication token not found');
-      }
-
       const formData = createFormData(tripData);
-
-      const response = await fetch(`${this.baseUrl}${TRIP_ENDPOINTS.CREATE}`, {
-        method: 'POST',
+      const response = await api.post('/create', formData, {
         headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to create trip');
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error creating trip:', error);
-      throw error instanceof Error ? error : new Error('Failed to create trip');
-    }
-  }
-
-  // Get all trips with pagination
-  async getTrips(page: number = 1): Promise<TripsResponse> {
-    try {
-      const response = await fetch(
-        `${this.baseUrl}${TRIP_ENDPOINTS.GET_ALL}?page=${page}`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to fetch trips');
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching trips:', error);
-      throw error instanceof Error ? error : new Error('Failed to fetch trips');
-    }
-  }
-
-  // Get trip by ID
-  async getTripById(id: string): Promise<TripWithGuide> {
-    try {
-      const response = await fetch(`${this.baseUrl}${TRIP_ENDPOINTS.GET_BY_ID(id)}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'multipart/form-data',
         },
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to fetch trip');
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(error.response.data.message || 'Failed to create trip');
       }
+      throw new Error('Network error occurred');
+    }
+  },
 
-      const data = await response.json();
+  // Get all trips with pagination - matches GET /trips
+  getTrips: async (page: number = 1): Promise<TripsResponse> => {
+    try {
+      const response = await api.get(`/trips?page=${page}`);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(error.response.data.message || 'Failed to fetch trips');
+      }
+      throw new Error('Network error occurred');
+    }
+  },
+
+  // Get trip by ID - matches GET /:id
+  getTripById: async (id: string): Promise<TripWithGuide> => {
+    try {
+      const response = await api.get(`/${id}`);
       return {
-        ...data.trip,
-        guideUser: data.guideUser,
+        ...response.data.trip,
+        guideUser: response.data.guideUser,
       };
     } catch (error) {
-      console.error('Error fetching trip by ID:', error);
-      throw error instanceof Error ? error : new Error('Failed to fetch trip');
-    }
-  }
-
-  // Get trips for a specific guide
-  async getTripsForGuide(guideId: string): Promise<Trip[]> {
-    try {
-      const response = await fetch(
-        `${this.baseUrl}${TRIP_ENDPOINTS.GET_FOR_GUIDE(guideId)}`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+      if (axios.isAxiosError(error) && error.response) {
+        if (error.response.status === 404) {
+          throw new Error('Trip not found');
         }
-      );
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to fetch trips for guide');
+        throw new Error(error.response.data.message || 'Failed to fetch trip');
       }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching trips for guide:', error);
-      throw error instanceof Error ? error : new Error('Failed to fetch trips for guide');
+      throw new Error('Network error occurred');
     }
-  }
+  },
 
-  // Update trip
-  async updateTrip(id: string, tripData: UpdateTripData): Promise<Trip> {
+  // Get trips for a specific guide - matches GET /:guideId/trips
+  getTripsForGuide: async (guideId: string): Promise<Trip[]> => {
+    try {
+      const response = await api.get(`/${guideId}/trips`);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(error.response.data.message || 'Failed to fetch trips for guide');
+      }
+      throw new Error('Network error occurred');
+    }
+  },
+
+  // Update trip - matches PUT /:id
+  updateTrip: async (id: string, tripData: UpdateTripData): Promise<Trip> => {
     try {
       const formData = createFormData(tripData);
-
-      const response = await fetch(`${this.baseUrl}${TRIP_ENDPOINTS.UPDATE(id)}`, {
-        method: 'PUT',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to update trip');
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error updating trip:', error);
-      throw error instanceof Error ? error : new Error('Failed to update trip');
-    }
-  }
-
-  // Delete trip
-  async deleteTrip(id: string): Promise<{ message: string }> {
-    try {
-      const response = await fetch(`${this.baseUrl}${TRIP_ENDPOINTS.DELETE(id)}`, {
-        method: 'DELETE',
+      const response = await api.put(`/${id}`, formData, {
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'multipart/form-data',
         },
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to delete trip');
-      }
-
-      return await response.json();
+      return response.data;
     } catch (error) {
-      console.error('Error deleting trip:', error);
-      throw error instanceof Error ? error : new Error('Failed to delete trip');
+      if (axios.isAxiosError(error) && error.response) {
+        if (error.response.status === 404) {
+          throw new Error('Trip not found');
+        }
+        throw new Error(error.response.data.message || 'Failed to update trip');
+      }
+      throw new Error('Network error occurred');
     }
-  }
+  },
 
-  // Utility method to validate trip data before submission
-  validateTripData(data: CreateTripData | UpdateTripData): string[] {
+  // Delete trip - matches DELETE /:id
+  deleteTrip: async (id: string): Promise<ApiResponse<null>> => {
+    try {
+      const response = await api.delete(`/${id}`);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        if (error.response.status === 404) {
+          throw new Error('Trip not found');
+        }
+        throw new Error(error.response.data.message || 'Failed to delete trip');
+      }
+      throw new Error('Network error occurred');
+    }
+  },
+
+  // Validate trip data before submission
+  validateTripData: (data: CreateTripData | UpdateTripData): string[] => {
     const errors: string[] = [];
 
     if ('title' in data && (!data.title || data.title.trim().length === 0)) {
@@ -300,13 +260,13 @@ class TripService {
     }
 
     return errors;
-  }
+  },
 
-  // Helper method to format trip data for display
-  formatTripForDisplay(trip: Trip): Trip & { 
+  // Format trip data for display
+  formatTripForDisplay: (trip: Trip): Trip & { 
     formattedPrice: string;
     formattedSchedule: string[];
-  } {
+  } => {
     return {
       ...trip,
       formattedPrice: `$${trip.price.toFixed(2)}`,
@@ -314,9 +274,99 @@ class TripService {
         `${new Date(item.date).toLocaleDateString()} at ${item.time}`
       ),
     };
-  }
-}
+  },
 
-// Export singleton instance
-export const tripService = new TripService();
-export default tripService;
+  // Check if trip is available for booking
+  isTripAvailable: (trip: Trip): boolean => {
+    return trip.isAvailable && trip.schedule.some(slot => slot.isAvailable);
+  },
+
+  // Get available schedule slots for a trip
+  getAvailableSchedules: (trip: Trip): Schedule[] => {
+    return trip.schedule.filter(slot => slot.isAvailable);
+  },
+
+  // Format coordinates for display
+  formatCoordinates: (startLocation: StartLocation): string => {
+    const [lng, lat] = startLocation.coordinates;
+    return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+  },
+
+  // Search trips by city or title
+  searchTrips: async (query: string, page: number = 1): Promise<TripsResponse> => {
+    try {
+      const allTrips = await TripService.getTrips(page);
+      const filteredTrips = allTrips.trips.filter(trip => 
+        trip.title.toLowerCase().includes(query.toLowerCase()) ||
+        trip.city.toLowerCase().includes(query.toLowerCase()) ||
+        trip.description.toLowerCase().includes(query.toLowerCase())
+      );
+
+      return {
+        trips: filteredTrips,
+        hasNextPage: allTrips.hasNextPage
+      };
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(error.response.data.message || 'Failed to search trips');
+      }
+      throw new Error('Network error occurred');
+    }
+  },
+
+  // Filter trips by type
+  filterTripsByType: async (type: string, page: number = 1): Promise<TripsResponse> => {
+    try {
+      const allTrips = await TripService.getTrips(page);
+      const filteredTrips = allTrips.trips.filter(trip => 
+        trip.type.toLowerCase() === type.toLowerCase()
+      );
+
+      return {
+        trips: filteredTrips,
+        hasNextPage: allTrips.hasNextPage
+      };
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(error.response.data.message || 'Failed to filter trips by type');
+      }
+      throw new Error('Network error occurred');
+    }
+  },
+
+  // Filter trips by price range
+  filterTripsByPriceRange: async (
+    minPrice: number, 
+    maxPrice: number, 
+    page: number = 1
+  ): Promise<TripsResponse> => {
+    try {
+      const allTrips = await TripService.getTrips(page);
+      const filteredTrips = allTrips.trips.filter(trip => 
+        trip.price >= minPrice && trip.price <= maxPrice
+      );
+
+      return {
+        trips: filteredTrips,
+        hasNextPage: allTrips.hasNextPage
+      };
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(error.response.data.message || 'Failed to filter trips by price');
+      }
+      throw new Error('Network error occurred');
+    }
+  },
+
+  // Check if user is authenticated
+  isAuthenticated: (): boolean => {
+    return !!localStorage.getItem('token');
+  },
+
+  // Get the auth token
+  getToken: (): string | null => {
+    return localStorage.getItem('token');
+  }
+};
+
+export default TripService;
