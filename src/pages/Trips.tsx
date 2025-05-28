@@ -2,11 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios, { AxiosError } from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Calendar, Search, Filter, X, ChevronDown, MapIcon, ListIcon } from 'lucide-react';
+import { MapPin, Calendar, Search, Filter, X, ChevronDown } from 'lucide-react';
 
 // API URL - directly use localhost for development
 const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? 'http://localhost:5000'
+  ? 'http://localhost:3000'
   : 'https://your-production-api.com'; // Replace with your production API URL
 
 // Trip Interface based on your backend model
@@ -81,7 +81,7 @@ const Trips: React.FC = () => {
   const [filteredTrips, setFilteredTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
+  const [viewMode] = useState<'grid' | 'map'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<FilterOptions>(INITIAL_FILTERS);
   const [showFilters, setShowFilters] = useState(false);

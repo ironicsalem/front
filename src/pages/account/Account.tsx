@@ -26,7 +26,7 @@ interface Notification {
   type: 'success' | 'error';
 }
 
-const API_URL = 'http://localhost:5000';
+const API_URL = 'http://localhost:3000';
 
 const Account = () => {
   const navigate = useNavigate();

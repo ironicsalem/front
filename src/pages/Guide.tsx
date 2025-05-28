@@ -4,24 +4,15 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { 
   User as UserIcon, 
   MapPin, 
-  Star, 
-  Calendar, 
-  Globe, 
-  Users, 
+  Star,   
   Clock, 
   DollarSign, 
-  Heart, 
-  MessageCircle, 
   ArrowLeft, 
   Camera, 
-  TrendingUp, 
-  BookOpen, 
-  Shield,
-  Mail,
   Bookmark
 } from 'lucide-react';
 
-const API_URL = 'http://localhost:5000';
+const API_URL = 'http://localhost:3000';
 
 interface Guide {
   _id: string;
@@ -84,7 +75,7 @@ interface ReviewFormData {
   images: File[]
 }
 
-const GuideProfileView = () => {
+const Guide = () => {
   const navigate = useNavigate();
   const { guideId } = useParams<{ guideId: string }>();
   const [guide, setGuide] = useState<Guide | null>(null);
@@ -776,4 +767,4 @@ const handleSubmitReview = async (e: React.FormEvent) => {
   );
 };
 
-export default GuideProfileView;
+export default Guide;

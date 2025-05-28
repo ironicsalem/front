@@ -6,7 +6,7 @@ import { ArrowLeft, Calendar, Clock, Users, Phone, Mail, FileText, CreditCard } 
 // API URL configuration
 const API_URL = (
   (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-    ? 'http://localhost:5000'
+    ? 'http://localhost:3000'
     : 'https://your-production-api.com'
 );
 
@@ -54,7 +54,7 @@ const Booking: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [trip, setTrip] = useState<Trip | null>(null);
-  const [currentUser, setCurrentUser] = useState<{ email: string; phone?: string } | null>(null);
+  const [currentUser] = useState<{ email: string; phone?: string } | null>(null);
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);

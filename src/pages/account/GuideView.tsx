@@ -21,7 +21,7 @@ import {
   XCircle
 } from 'lucide-react';
 
-const API_URL = 'http://localhost:5000';
+const API_URL = 'http://localhost:3000';
 
 interface Post {
   _id: string;

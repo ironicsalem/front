@@ -1,197 +1,221 @@
-import { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import logo from '/logo.svg';
-import { logoutUser } from '../services/authService';
-import { 
-  Home, 
-  Info, 
-  Mail, 
-  LogIn, 
-  UserPlus, 
-  User, 
-  LogOut,
-  ChevronDown,
-  ChevronUp
-} from 'lucide-react';
+import AuthService from '../services/AuthService';
 
 interface NavbarProps {
-  isScrolled: boolean;
-  isAuthenticated: boolean;
-  setIsAuthenticated: (value: boolean) => void;
+  isScrolled: boolean
+  isAuthenticated: boolean
+  setIsAuthenticated: (value: boolean) => void
 }
 
 const Navbar = ({ isScrolled, isAuthenticated, setIsAuthenticated }: NavbarProps) => {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
 
   const handleLogout = async () => {
     try {
-      await logoutUser();
-      localStorage.removeItem('authToken');
+      await AuthService.signOut();
       setIsAuthenticated(false);
-      setIsDropdownOpen(false);
+      setIsMobileMenuOpen(false);
       navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);
     }
-  };
+  }
 
-  const toggleDropdown = () => {
-    setIsDropdownOpen(!isDropdownOpen);
-  };
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  }
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
-  // Close dropdown when navigating
-  useEffect(() => {
-    setIsDropdownOpen(false);
-  }, [location]);
-
-  const navLinkClass = "flex items-center gap-2 text-white hover:text-amber-400 transition-colors";
-  const activeNavLinkClass = "text-amber-400 font-medium";
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  }
 
   return (
     <nav 
-      className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${
+      className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ${
         isScrolled 
-          ? 'bg-amber-950/95 backdrop-blur-sm py-3 shadow-lg' 
-          : 'bg-amber-950 py-4'
+          ? 'bg-amber-950/95 backdrop-blur-md shadow-lg py-3' 
+          : 'bg-amber-950/90 backdrop-blur-sm py-4'
       }`}
     >
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center">
           {/* Logo and Brand Name */}
-          <Link 
-            to="/" 
-            className="flex items-center group"
-            aria-label="Guidak Home"
-          >
+          <Link to="/" className="flex items-center group" onClick={closeMobileMenu}>
             <div className="flex items-center">
-              <img 
-                src={logo} 
-                alt="Guidak Logo" 
-                className="h-10 w-10 mr-2 transition-transform group-hover:scale-110" 
-                style={{ filter: 'invert(57%) sepia(52%) saturate(2700%) hue-rotate(360deg) brightness(102%) contrast(101%)' }}
-              />
-              <span className="text-xl font-bold text-white group-hover:text-amber-400 transition-colors">
+              <div className="relative">
+                <img 
+                  src={logo} 
+                  alt="Guidak Logo" 
+                  className="h-10 w-10 mr-3 transition-transform duration-300 group-hover:scale-110" 
+                  style={{ filter: 'invert(57%) sepia(52%) saturate(2700%) hue-rotate(360deg) brightness(102%) contrast(101%)' }}
+                />
+                <div className="absolute inset-0 bg-amber-400/20 rounded-full blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              </div>
+              <span className="text-2xl font-bold text-white tracking-tight">
                 Guidak
               </span>
             </div>
           </Link>
 
-          {/* Navigation Links */}
-          <div className="hidden md:flex items-center gap-6">
+          {/* Desktop Navigation Links */}
+          <div className="hidden md:flex items-center space-x-1">
             <Link 
               to="/" 
-              className={`${navLinkClass} ${location.pathname === '/' ? activeNavLinkClass : ''}`}
-              aria-current={location.pathname === '/' ? 'page' : undefined}
+              className="text-white/90 hover:text-white hover:bg-white/10 px-4 py-2 rounded-lg transition-all duration-300 font-medium"
             >
-              <Home size={18} />
-              <span>Home</span>
+              Home
             </Link>
             <Link 
               to="/about" 
-              className={`${navLinkClass} ${location.pathname === '/about' ? activeNavLinkClass : ''}`}
-              aria-current={location.pathname === '/about' ? 'page' : undefined}
+              className="text-white/90 hover:text-white hover:bg-white/10 px-4 py-2 rounded-lg transition-all duration-300 font-medium"
             >
-              <Info size={18} />
-              <span>About</span>
+              About
             </Link>
             <Link 
               to="/contact" 
-              className={`${navLinkClass} ${location.pathname === '/contact' ? activeNavLinkClass : ''}`}
-              aria-current={location.pathname === '/contact' ? 'page' : undefined}
+              className="text-white/90 hover:text-white hover:bg-white/10 px-4 py-2 rounded-lg transition-all duration-300 font-medium"
             >
-              <Mail size={18} />
-              <span>Contact</span>
+              Contact
             </Link>
+
+            <div className="h-6 w-px bg-white/20 mx-2"></div>
 
             {!isAuthenticated ? (
               <>
                 <Link 
                   to="/login"
-                  className={`${navLinkClass} ${location.pathname === '/login' ? activeNavLinkClass : ''}`}
+                  className="text-white/90 hover:text-white hover:bg-white/10 px-4 py-2 rounded-lg transition-all duration-300 font-medium"
                 >
-                  <LogIn size={18} />
-                  <span>Login</span>
+                  Login
                 </Link>
                 <Link 
                   to="/signup"
-                  className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2"
+                  className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white px-6 py-2.5 rounded-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                 >
-                  <UserPlus size={18} />
-                  <span>Sign Up</span>
+                  Sign Up
                 </Link>
               </>
             ) : (
-              <div className="relative" ref={dropdownRef}>
-                <button
-                  onClick={toggleDropdown}
-                  className={`${navLinkClass} ${isDropdownOpen ? 'text-amber-400' : ''}`}
-                  aria-expanded={isDropdownOpen}
-                  aria-haspopup="true"
-                  aria-label="Account menu"
+              <>
+                <Link 
+                  to="/profile"
+                  className="text-white/90 hover:text-white hover:bg-white/10 px-4 py-2 rounded-lg transition-all duration-300 font-medium flex items-center"
                 >
-                  <User size={18} />
-                  <span>Account</span>
-                  {isDropdownOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  My Profile
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white px-6 py-2.5 rounded-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  Sign Out
                 </button>
-
-                {isDropdownOpen && (
-                  <div 
-                    className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 border border-gray-100"
-                    role="menu"
-                  >
-                    <Link 
-                      to="/account" 
-                      className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-amber-50 hover:text-amber-600 transition-colors"
-                      role="menuitem"
-                    >
-                      <User size={16} />
-                      <span>Profile</span>
-                    </Link>
-                    
-                    <button
-                      onClick={handleLogout}
-                      className="flex items-center gap-2 w-full text-left px-4 py-2 text-gray-700 hover:bg-amber-50 hover:text-amber-600 transition-colors"
-                      role="menuitem"
-                    >
-                      <LogOut size={16} />
-                      <span>Logout</span>
-                    </button>
-                  </div>
-                )}
-              </div>
+              </>
             )}
           </div>
 
-          {/* Mobile menu button (would need implementation) */}
-          <button 
-            className="md:hidden text-white focus:outline-none"
-            aria-label="Toggle menu"
+          {/* Mobile Menu Button */}
+          <button
+            onClick={toggleMobileMenu}
+            className="md:hidden text-white p-2 rounded-lg hover:bg-white/10 transition-colors duration-300"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            <svg 
+              className={`w-6 h-6 transition-transform duration-300 ${isMobileMenuOpen ? 'rotate-90' : ''}`}
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              {isMobileMenuOpen ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              )}
             </svg>
           </button>
         </div>
+
+        {/* Mobile Menu */}
+        <div className={`md:hidden transition-all duration-300 overflow-hidden ${
+          isMobileMenuOpen ? 'max-h-96 opacity-100 mt-4' : 'max-h-0 opacity-0'
+        }`}>
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 space-y-2">
+            <Link 
+              to="/" 
+              onClick={closeMobileMenu}
+              className="block text-white/90 hover:text-white hover:bg-white/10 px-4 py-3 rounded-lg transition-all duration-300 font-medium"
+            >
+              Home
+            </Link>
+            <Link 
+              to="/about" 
+              onClick={closeMobileMenu}
+              className="block text-white/90 hover:text-white hover:bg-white/10 px-4 py-3 rounded-lg transition-all duration-300 font-medium"
+            >
+              About
+            </Link>
+            <Link 
+              to="/contact" 
+              onClick={closeMobileMenu}
+              className="block text-white/90 hover:text-white hover:bg-white/10 px-4 py-3 rounded-lg transition-all duration-300 font-medium"
+            >
+              Contact
+            </Link>
+
+            <div className="h-px bg-white/20 my-3"></div>
+
+            {!isAuthenticated ? (
+              <>
+                <Link 
+                  to="/login"
+                  onClick={closeMobileMenu}
+                  className="block text-white/90 hover:text-white hover:bg-white/10 px-4 py-3 rounded-lg transition-all duration-300 font-medium"
+                >
+                  Login
+                </Link>
+                <Link 
+                  to="/signup"
+                  onClick={closeMobileMenu}
+                  className="block bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white px-4 py-3 rounded-lg font-semibold transition-all duration-300 text-center"
+                >
+                  Sign Up
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link 
+                  to="/profile"
+                  onClick={closeMobileMenu}
+                  className="flex items-center text-white/90 hover:text-white hover:bg-white/10 px-4 py-3 rounded-lg transition-all duration-300 font-medium"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  My Profile
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-3 rounded-lg font-semibold transition-all duration-300 flex items-center justify-center"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  Sign Out
+                </button>
+              </>
+            )}
+          </div>
+        </div>
       </div>
     </nav>
-  );
-};
+  )
+}
 
-export default Navbar;
+export default Navbar

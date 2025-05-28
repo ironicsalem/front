@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import axios from 'axios';
-
-// API URL from your auth service
-const API_URL = 'http://localhost:5000';
+import { useNavigate } from 'react-router-dom';
+import AuthService from '../../services/AuthService';
 
 interface ResetPasswordState {
   password: string;
@@ -27,26 +24,23 @@ const ResetPassword: React.FC = () => {
   });
   
   const navigate = useNavigate();
-  const { token } = useParams<{ token: string }>();
-  const location = useLocation();
-  const queryParams = new URLSearchParams(location.search);
-  const email = queryParams.get('email');
   
   useEffect(() => {
-        const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('authToken');
     if (!token) {
       setState(prev => ({
         ...prev,
         error: 'Invalid password reset link. Please request a new one.',
       }));
     }
-  }, [token]);
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setState(prev => ({
       ...prev,
       [name]: value,
+      error: '', // Clear error when user starts typing
     }));
   };
 
@@ -92,17 +86,16 @@ const ResetPassword: React.FC = () => {
     }));
 
     try {
-       const token = localStorage.getItem('authToken');
-
-      await axios.post(
-      `${API_URL}/auth/set-new-password`,
-      { password: state.password }, // <-- data object
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+      const token = localStorage.getItem('authToken');
+      
+      if (!token) {
+        throw new Error('No reset token found. Please request a new password reset.');
       }
-    );
+
+      await AuthService.setNewPassword({
+        token: token,
+        newPassword: state.password
+      });
 
       setState(prev => ({
         ...prev,
@@ -110,27 +103,16 @@ const ResetPassword: React.FC = () => {
         success: true,
       }));
       
+      // Clean up stored tokens
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('email');
+      
       // Redirect to login after 3 seconds
       setTimeout(() => {
-        navigate('/');
+        navigate('/login');
       }, 3000);
     } catch (error) {
-      const err = error as {
-        response?: { 
-          data?: { 
-            message?: string 
-          } 
-        },
-        request?: unknown
-      };
-      
-      let errorMessage = 'An unexpected error occurred. Please try again.';
-      
-      if (err.response) {
-        errorMessage = err.response.data?.message || 'Failed to reset password. Please try again.';
-      } else if (err.request) {
-        errorMessage = 'Server not responding. Please try again later.';
-      }
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.';
       
       setState(prev => ({
         ...prev,

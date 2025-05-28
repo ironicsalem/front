@@ -1,9 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-
-// API URL from your auth service
-const API_URL = 'http://localhost:5000';
+import AuthService from '../../services/AuthService';
 
 interface ForgotPasswordState {
   email: string;
@@ -28,6 +25,7 @@ const ForgotPassword: React.FC = () => {
     setState({
       ...state,
       email: e.target.value,
+      error: '', // Clear error when user starts typing
     });
   };
 
@@ -41,9 +39,10 @@ const ForgotPassword: React.FC = () => {
     });
 
     try {
-      // Call API to request password reset
-      await axios.post(`${API_URL}/auth/forgot-password`, { email: state.email });
-        localStorage.setItem('email', state.email);
+      await AuthService.forgotPassword({ email: state.email });
+      
+      // Store email for the next step in the flow
+      localStorage.setItem('email', state.email);
 
       setState({
         ...state,
@@ -52,22 +51,7 @@ const ForgotPassword: React.FC = () => {
         success: 'Password reset code has been sent to your email address.',
       });
     } catch (error) {
-      const err = error as {
-        response?: { 
-          data?: { 
-            message?: string 
-          } 
-        },
-        request?: unknown
-      };
-      
-      let errorMessage = 'An unexpected error occurred. Please try again.';
-      
-      if (err.response) {
-        errorMessage = err.response.data?.message || 'Failed to send password reset email. Please try again.';
-      } else if (err.request) {
-        errorMessage = 'Server not responding. Please try again later.';
-      }
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.';
       
       setState({
         ...state,
@@ -75,6 +59,10 @@ const ForgotPassword: React.FC = () => {
         error: errorMessage,
       });
     }
+  };
+
+  const handleSendCodeClick = () => {
+    navigate('/verify-reset-password');
   };
 
   return (
@@ -124,6 +112,7 @@ const ForgotPassword: React.FC = () => {
               <input
                 type="email"
                 id="email"
+                name="email"
                 value={state.email}
                 onChange={handleChange}
                 placeholder="Enter your email address"
@@ -133,7 +122,6 @@ const ForgotPassword: React.FC = () => {
             </div>
             
             <button
-              onClick={() => navigate('/verify-reset-password')}
               type="submit"
               disabled={state.isLoading}
               className={`w-full ${state.isLoading ? 'bg-orange-400' : 'bg-orange-500 hover:bg-orange-600'} text-white py-2 px-4 rounded-md transition duration-300`}
@@ -142,10 +130,16 @@ const ForgotPassword: React.FC = () => {
             </button>
           </form>
         ) : (
-          <div className="mt-6">
+          <div className="mt-6 space-y-4">
+            <button
+              onClick={handleSendCodeClick}
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded-md transition duration-300"
+            >
+              I Have a Code
+            </button>
             <button
               onClick={() => navigate('/login')}
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded-md transition duration-300"
+              className="w-full bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-md transition duration-300"
             >
               Back to Login
             </button>

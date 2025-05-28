@@ -6,7 +6,7 @@ import { MapPin, Calendar, ArrowLeft, Phone, User } from 'lucide-react';
 // API URL configuration
 const API_URL = (
   (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-    ? 'http://localhost:5000'
+    ? 'http://localhost:3000'
     : 'https://your-production-api.com'
 );
 
@@ -54,7 +54,7 @@ interface TripResponse {
   guideUser: GuideUser;
 }
 
-const TripDetail: React.FC = () => {
+const TripDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [guideUser, setGuideUser] = useState<GuideUser | null>(null);
@@ -396,4 +396,4 @@ const TripDetail: React.FC = () => {
   );
 };
 
-export default TripDetail;
+export default TripDetails;

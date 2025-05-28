@@ -1,138 +1,232 @@
-// src/services/authService.ts
-
 import axios from 'axios';
+import { BaseUser, LoginRequest, LoginResponse, RegisterResponse, CreateUserRequest, ApiResponse } from '../types/Types';
 
-// Define your API base URL - change this to your Express.js backend URL
-const API_URL = 'http://localhost:5000';
+const API_URL = 'http://localhost:3000/auth';
 
-// Interface for login data
-interface LoginData {
-  email: string;
-  password: string;
-}
+// Set up axios instance with default headers
+const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
-// Interface for registration data
-interface RegisterData {
-  username: string;
-  email: string;
-  password: string;
-}
-
-// Interface for user data
-interface User {
-  _id: string;
-  username: string;
-  email: string;
-}
-
-/**
- * Login user
- * @param {LoginData} loginData - User's login credentials
- * @returns {Promise<{token: string, user: User}>} - JWT token and user data
- */
-export const loginUser = async (loginData: LoginData): Promise<{token: string, user: User}> => {
-  localStorage.setItem('email', loginData.email);
-  const response = await axios.post(`${API_URL}/auth/signin`, loginData);
-
-  // Store JWT token in localStorage
-  if (response.data.token) {
-    localStorage.setItem('authToken', response.data.token);
-    
-    console.log('Token stored:', localStorage.getItem('authToken'));
-  }
-  
-  return response.data.token;
-};
-
-/**
- * Register new user
- * @param {RegisterData} registerData - User's registration data
- * @returns {Promise<{token: string, user: User}>} - JWT token and user data
- */
-export const registerUser = async (registerData: RegisterData): Promise<{token: string, user: User}> => {
-  const response = await axios.post(`${API_URL}/auth/signup`, registerData);
-  
-  // Store JWT token in localStorage
-  if (response.data.token) {
-    localStorage.setItem('authToken', response.data.token);
-    localStorage.setItem('email', registerData.email);
-  }
-  
-  return response.data;
-};
-
-/**
- * Logout user
- * @returns {Promise<void>}
- */
-export const logoutUser = async (): Promise<void> => {
-  // This try/catch is necessary to ensure we always remove the token
-  // even if the API call fails
-  try {
-    // Call the backend to invalidate the token (if you're tracking active tokens)
-    const token = localStorage.getItem('authToken');
-    
+// Intercept requests to add auth token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
     if (token) {
-      await axios.post(
-        `${API_URL}/auth/logout`, 
-        {}, 
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
+      config.headers.Authorization = `Bearer ${token}`;
     }
-  } catch (error) {
-    console.error('Logout error:', error);
-    // Continue execution to remove token
-  } finally {
-    // Always remove token from localStorage
-    localStorage.removeItem('authToken');
-  }
-};
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
-/**
- * Get current authenticated user
- * @returns {Promise<User>} - User data
- */
-export const getCurrentUser = async (): Promise<User> => {
-  const token = localStorage.getItem('authToken');
-  
-  if (!token) {
-    throw new Error('No authentication token found');
-  }
-  
-  const response = await axios.get(
-    `${API_URL}/auth/verify`, 
-    {
-      headers: {
-        Authorization: `Bearer ${token}`
+// Additional interfaces for auth operations not covered in Types.ts
+export interface VerifyEmailData {
+  email: string;
+  code: string;
+}
+
+export interface ResetPasswordData {
+  email: string;
+}
+
+export interface VerifyResetCodeData {
+  email: string;
+  code: string;
+}
+
+export interface SetNewPasswordData {
+  token: string;
+  newPassword: string;
+}
+
+export interface AuthResponse {
+  message: string;
+  token?: string;
+  user?: BaseUser;
+  valid?: boolean;
+}
+
+const AuthService = {
+  // Sign up a new user - matches POST /signup
+  signUp: async (userData: CreateUserRequest): Promise<RegisterResponse> => {
+    try {
+      const response = await api.post('/signup', userData);
+      if (response.data.token) {
+        localStorage.setItem('token', response.data.token);
       }
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        // Handle rate limiting specifically
+        if (error.response.status === 429) {
+          throw new Error('Too many requests. Please try again later.');
+        }
+        throw new Error(error.response.data.error || 'Failed to sign up');
+      }
+      throw new Error('Network error occurred');
     }
-  );
-  
-  return response.data.user;
-};
+  },
 
-/**
- * Check if user is authenticated
- * @returns {Promise<boolean>} - Authentication status
- */
-export const checkAuthStatus = async () => {
-  const token = localStorage.getItem("authToken");
-  if (!token) return false;
+  // Sign in an existing user - matches POST /signin
+  signIn: async (credentials: LoginRequest): Promise<LoginResponse> => {
+    try {
+      const response = await api.post('/signin', credentials);
+      if (response.data.token) {
+        localStorage.setItem('token', response.data.token);
+      }
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        // Handle rate limiting specifically
+        if (error.response.status === 429) {
+          throw new Error('Too many requests. Please try again later.');
+        }
+        throw new Error(error.response.data.error || 'Failed to sign in');
+      }
+      throw new Error('Network error occurred');
+    }
+  },
 
-  try {
-    const response = await axios.get( `${API_URL}/auth/verify`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+  // Sign out the current user - matches POST /signout
+  signOut: async (): Promise<ApiResponse<null>> => {
+    try {
+      const response = await api.post('/signout');
+      localStorage.removeItem('token');
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(error.response.data.error || 'Failed to sign out');
+      }
+      throw new Error('Network error occurred');
+    }
+  },
 
-    return response.data.valid|| false;
-  } catch (error) {
-    console.error("Auth verification error:", error);
-    return false;
+  // Request password reset - matches POST /forgot-password (rate limited)
+  forgotPassword: async (data: ResetPasswordData): Promise<ApiResponse<null>> => {
+    try {
+      const response = await api.post('/forgot-password', data);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        // Handle rate limiting specifically for this endpoint
+        if (error.response.status === 429) {
+          throw new Error('Too many requests. Please try again later.');
+        }
+        throw new Error(error.response.data.error || 'Failed to request password reset');
+      }
+      throw new Error('Network error occurred');
+    }
+  },
+
+  // Verify reset code - matches POST /verify-reset-code (rate limited)
+  verifyResetCode: async (data: VerifyResetCodeData): Promise<ApiResponse<{ token?: string }>> => {
+    try {
+      const response = await api.post('/verify-reset-code', data);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        // Handle rate limiting specifically for this endpoint
+        if (error.response.status === 429) {
+          throw new Error('Too many requests. Please try again later.');
+        }
+        throw new Error(error.response.data.error || 'Invalid or expired reset code');
+      }
+      throw new Error('Network error occurred');
+    }
+  },
+
+  // Set new password after reset - matches POST /set-new-password (rate limited)
+  setNewPassword: async (data: SetNewPasswordData): Promise<ApiResponse<null>> => {
+    try {
+      const response = await api.post('/set-new-password', data);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        // Handle rate limiting specifically for this endpoint
+        if (error.response.status === 429) {
+          throw new Error('Too many requests. Please try again later.');
+        }
+        throw new Error(error.response.data.error || 'Failed to set new password');
+      }
+      throw new Error('Network error occurred');
+    }
+  },
+
+  // Verify email with verification code - matches POST /verify-email
+  verifyEmail: async (verifyData: VerifyEmailData): Promise<ApiResponse<null>> => {
+    try {
+      const response = await api.post('/verify-email', verifyData);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(error.response.data.error || 'Failed to verify email');
+      }
+      throw new Error('Network error occurred');
+    }
+  },
+
+  // Verify the current user's token - matches GET /verify (requires token)
+  verifyToken: async (): Promise<ApiResponse<{ user?: BaseUser }>> => {
+    try {
+      const response = await api.get('/verify');
+      return response.data;
+    } catch (error) {
+      localStorage.removeItem('token');
+      if (axios.isAxiosError(error) && error.response) {
+        // Handle specific middleware responses
+        if (error.response.status === 401) {
+          throw new Error(error.response.data.message || 'Unauthorized');
+        }
+        throw new Error(error.response.data.message || 'Invalid token');
+      }
+      throw new Error('Network error occurred');
+    }
+  },
+
+  // Resend verification email - matches POST /resend-verification-email
+  resendVerificationEmail: async (email: string): Promise<ApiResponse<null>> => {
+    try {
+      const response = await api.post('/resend-verification-email', { email });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(error.response.data.error || 'Failed to resend verification email');
+      }
+      throw new Error('Network error occurred');
+    }
+  },
+
+  // Get current user data - matches GET /current-user (requires token)
+  getCurrentUser: async (): Promise<BaseUser> => {
+    try {
+      const response = await api.get('/current-user');
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        // Handle specific middleware responses
+        if (error.response.status === 401) {
+          localStorage.removeItem('token'); // Remove invalid token
+          throw new Error(error.response.data.message || 'Unauthorized');
+        }
+        throw new Error(error.response.data.message || 'Failed to get current user');
+      }
+      throw new Error('Network error occurred');
+    }
+  },
+
+  // Check if user is authenticated
+  isAuthenticated: (): boolean => {
+    return !!localStorage.getItem('token');
+  },
+
+  // Get the auth token
+  getToken: (): string | null => {
+    return localStorage.getItem('token');
   }
 };
+
+export default AuthService;

@@ -59,13 +59,13 @@ const Home: React.FC = () => {
           {cities.length > 3 && (
             <>
               <button 
-                className="hidden md:block absolute left-0 top-1/2 -translate-y-1/2 -translate-x-8 z-10 bg-black/30 hover:bg-black/50 text-white rounded-full w-12 h-12 flex items-center justify-center transition-all duration-300 shadow-xl hover:scale-110"
+                className="md:block absolute left-0 top-1/2 -translate-y-1/2 -translate-x-8 z-10 bg-black/30 hover:bg-black/50 text-white rounded-full w-12 h-12 flex items-center justify-center transition-all duration-300 shadow-xl hover:scale-110"
                 onClick={handlePrevGroup}
               >
                 &larr;
               </button>
               <button 
-                className="hidden md:block absolute right-0 top-1/2 -translate-y-1/2 translate-x-8 z-10 bg-black/30 hover:bg-black/50 text-white rounded-full w-12 h-12 flex items-center justify-center transition-all duration-300 shadow-xl hover:scale-110"
+                className="md:block absolute right-0 top-1/2 -translate-y-1/2 translate-x-8 z-10 bg-black/30 hover:bg-black/50 text-white rounded-full w-12 h-12 flex items-center justify-center transition-all duration-300 shadow-xl hover:scale-110"
                 onClick={handleNextGroup}
               >
                 &rarr;

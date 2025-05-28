@@ -1,20 +1,22 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { registerUser } from '../services/authService';
+import AuthService from '../../services/AuthService';
+import { CreateUserRequest } from '../../types/Types';
 
 interface SignupProps {
   setIsAuthenticated: (value: boolean) => void;
   setIsEmailVerified: (value: boolean) => void;
 }
 
-
 const Signup: React.FC<SignupProps> = ({ setIsAuthenticated }) => {
-  const [formData, setFormData] = useState({
-    username: '',
+  const [formData, setFormData] = useState<CreateUserRequest>({
+    name: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    role: 'tourist',
+    bio: '' // Add optional bio field
   });
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -24,6 +26,7 @@ const Signup: React.FC<SignupProps> = ({ setIsAuthenticated }) => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    console.log(`Form field changed: ${name} = ${value}`); // Debug log
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -44,7 +47,7 @@ const Signup: React.FC<SignupProps> = ({ setIsAuthenticated }) => {
     setError('');
 
     // Validate password match
-    if (formData.password !== formData.confirmPassword) {
+    if (formData.password !== confirmPassword) {
       setError('Passwords do not match');
       setIsLoading(false);
       return;
@@ -56,42 +59,36 @@ const Signup: React.FC<SignupProps> = ({ setIsAuthenticated }) => {
       setIsLoading(false);
       return;
     }
+
+    // Validate required fields
+    if (!formData.name.trim()) {
+      setError('Name is required');
+      setIsLoading(false);
+      return;
+    }
+
+    if (!formData.email.trim()) {
+      setError('Email is required');
+      setIsLoading(false);
+      return;
+    }
     
     try {
-      // Call the register function from our auth service
-      await registerUser({
-        username: formData.username,
-        email: formData.email,
-        password: formData.password
-      });
+      console.log('Sending signup data:', formData); // Debug log
+      await AuthService.signUp(formData);
+      
+      // Store email for email verification flow
+      localStorage.setItem("email", formData.email);
       
       // Update authentication state
       localStorage.setItem("isAuthenticated", "true");
       setIsAuthenticated(true);
             
-      // Redirect to account page after successful registration
+      // Redirect to email verification page after successful registration
       navigate('/verify-email');
     } catch (error) {
-      const err = error as {
-        response?: { 
-          data?: { 
-            error?: string 
-          } 
-        },
-        request?: unknown
-      };
-      
-      if (err.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
-        setError(err.response.data?.error || 'Registration failed. Please try again.');
-      } else if (err.request) {
-        // The request was made but no response was received
-        setError('Server not responding. Please try again later.');
-      } else {
-        // Something happened in setting up the request that triggered an Error
-        setError('An unexpected error occurred. Please try again.');
-      }
+      const errorMessage = error instanceof Error ? error.message : 'Registration failed. Please try again.';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -122,18 +119,18 @@ const Signup: React.FC<SignupProps> = ({ setIsAuthenticated }) => {
         
         {/* Signup Form */}
         <form onSubmit={handleSubmit}>
-          {/* Username Field */}
+          {/* Name Field */}
           <div className="mb-4">
-            <label htmlFor="username" className="block text-gray-500 mb-2">
-              Username
+            <label htmlFor="name" className="block text-gray-500 mb-2">
+              Full Name
             </label>
             <input
               type="text"
-              id="username"
-              name="username"
-              value={formData.username}
+              id="name"
+              name="name"
+              value={formData.name}
               onChange={handleChange}
-              placeholder="Enter your username"
+              placeholder="Enter your Full Name"
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
               required
             />
@@ -209,8 +206,8 @@ const Signup: React.FC<SignupProps> = ({ setIsAuthenticated }) => {
                 type={showConfirmPassword ? "text" : "password"}
                 id="confirmPassword"
                 name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm your password"
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                 required

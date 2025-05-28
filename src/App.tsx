@@ -12,25 +12,25 @@ import Home from "./pages/Home";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import SearchResults from "./pages/SearchResults";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import ForgotPassword from "./pages/ForgetPassword";
+import Login from "./pages/auth/Login";
+import Signup from "./pages/auth/Signup";
+import ForgotPassword from "./pages/auth/ForgetPassword";
 import CityOverview from "./pages/CityOverview";
-import ResetPassword from "./pages/ResetPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
 import Account from "./pages/account/Account";
-import EditTrip from "./pages/trip_creation/editTrip";
-import VerifyEmail from './pages/VerifyEmail';
+import VerifyEmail from './pages/auth/VerifyEmail';
 import ApplyForm from './pages/ApplyForm';
-import { checkAuthStatus } from "./services/authService";
 import GuidesApplications from "./pages/applicationHandling";
 import TripsPage from "./pages/Trips";
-import GuideProfileView from "./pages/account/GuideProfileView";
+import Guide from "./pages/Guide";
 import CreateTrip from "./pages/trip_creation/CreateTrip";
 import TripDetails from "./pages/TripDetails";
-import Bookings from "./pages/account/Booking";
 import Booking from "./components/Booking";
-import VerifyResetPass from "./pages/VerifyResetPassword";
+import Bookings from "./pages/account/Bookings";
+import MyProfile from "./pages/profile/MyProfile";
 
+// Services
+import AuthService from "./services/AuthService";
 
 // Protected route wrapper component
 const ProtectedRoute = ({
@@ -49,36 +49,59 @@ const ProtectedRoute = ({
   return <>{children}</>;
 };
 
+// Define a custom error type for auth errors
+interface AuthError extends Error {
+  message: string;
+  status?: number;
+}
+
 function App() {
+  // State management
   const [isScrolled, setIsScrolled] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-
-    const [isEmailVerified, setIsEmailVerified] = useState(false);
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Handle scroll effect for navbar
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 10) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
-      }
+      setIsScrolled(window.scrollY > 10);
     };
 
     window.addEventListener("scroll", handleScroll);
-
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-    };
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Handle authentication verification
   useEffect(() => {
     const verifyAuth = async () => {
       try {
-        const isAuth = await checkAuthStatus();
-        setIsAuthenticated(isAuth);
+        // First check if token exists in localStorage before attempting verification
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setIsAuthenticated(false);
+          setIsLoading(false);
+          return;
+        }
+        
+        // Use the AuthService verifyToken method to check auth status
+        await AuthService.verifyToken();
+        setIsAuthenticated(true);
+        
+        // Fetch the current user to check email verification
+        const user = await AuthService.getCurrentUser();
+        setIsEmailVerified(user?.verified || false);
       } catch (error) {
         console.error("Authentication verification error:", error);
+        
+        // Handle the error - cast to our custom error type
+        const authError = error as AuthError;
+        
+        // If error is specifically about invalid/expired token, clear it
+        if (authError.message?.includes('Invalid or expired token')) {
+          localStorage.removeItem('token');
+        }
+        
         setIsAuthenticated(false);
       } finally {
         setIsLoading(false);
@@ -87,23 +110,18 @@ function App() {
 
     verifyAuth();
 
+    // Listen for token changes in localStorage
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "authToken") {
-        if (!e.newValue) {
-          setIsAuthenticated(false);
-        } else if (!localStorage.getItem("authToken") && e.newValue) {
-          setIsAuthenticated(true);
-        }
+      if (e.key === 'token') {
+        verifyAuth(); // Re-verify when token changes rather than just setting state
       }
     };
 
     window.addEventListener("storage", handleStorageChange);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-    };
+    return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
+  // Loading indicator
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -111,7 +129,6 @@ function App() {
       </div>
     );
   }
-  
 
   return (
     <Router>
@@ -125,28 +142,27 @@ function App() {
 
         {/* Main content */}
         <main className="flex-grow pt-16">
-          {" "}
-          {/* Added padding-top for fixed navbar */}
           <Routes>
+            {/* Public routes */}
             <Route path="/" element={<Home />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/search" element={<SearchResults />} />
+            <Route path="/city/:cityName" element={<CityOverview />} />
+            <Route path="/trip/:id" element={<TripDetails />} />
+            <Route path="/guide/:guideId" element={<Guide />} />
 
-            {/* Home route */}
-            <Route path="/city/:cityName" element={< CityOverview/>} />
-
-
-            {/* Login route */}
+            {/* Authentication routes */}
             <Route
               path="/login"
               element={
                 isAuthenticated ? (
-                  <Navigate to="/account" replace />
+                  <Navigate to="/" replace />
                 ) : (
                   <Login 
-                  setIsAuthenticated={setIsAuthenticated}
-                  setIsEmailVerified={setIsEmailVerified} />
+                    setIsAuthenticated={setIsAuthenticated}
+                    setIsEmailVerified={setIsEmailVerified} 
+                  />
                 )
               }
             />
@@ -157,7 +173,7 @@ function App() {
                 isAuthenticated && !isEmailVerified ? (
                   <Navigate to="/verify-email" replace />
                 ) : isAuthenticated && isEmailVerified ? (
-                  <Navigate to="/account" replace />
+                  <Navigate to="/" replace />
                 ) : (
                   <Signup
                     setIsAuthenticated={setIsAuthenticated}
@@ -166,28 +182,28 @@ function App() {
                 )
               }
             />
-            <Route path="/edit-trip/:id" element={<EditTrip />} />
 
-            <Route path="/apply" element={<ApplyForm />} />
-            <Route path="/Applicatons" element={<GuidesApplications />} />
-            <Route path="/trips" element={<TripsPage />} />
-      
-            {/* Password recovery routes */}
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/verify-reset-password" element={<VerifyResetPass setIsEmailVerified={() => {}} />} />
-
-            {/*sign up verfication*/}
+            {/* Email verification */}
             <Route
               path="/verify-email"
               element={<VerifyEmail setIsEmailVerified={setIsEmailVerified} />}
             />
-            {/* create trip */}
-            <Route
-              path="/addtrip"
-              element={<CreateTrip />}
+
+            {/* Password recovery routes */}
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route 
+              path="/verify-reset-password" 
+              element={<VerifyEmail setIsEmailVerified={() => {}} />} 
             />
-            {/* Protected routes */}
+
+            {/* Application routes */}
+            <Route path="/apply" element={<ApplyForm />} />
+            
+            {/* Trip exploration */}
+            <Route path="/trips" element={<TripsPage />} />
+
+            {/* Protected routes - require authentication */}
             <Route
               path="/account/*"
               element={
@@ -195,19 +211,36 @@ function App() {
                   <Account />
                 </ProtectedRoute>
               }
-            />
+            >
+            </Route>
+            
             <Route
-                path="/my-bookings"
+                path="/profile"
                 element={
                   <ProtectedRoute isAuthenticated={isAuthenticated}>
-                    <Bookings />
+                    <MyProfile />
                   </ProtectedRoute>
                 }
-              />
+            />
 
-            <Route path="/trip/:id" element={<TripDetails />} />
+            <Route
+              path="/bookings"
+              element={
+                <ProtectedRoute isAuthenticated={isAuthenticated}>
+                  <Bookings />
+                </ProtectedRoute>
+              }
+            />
 
-            <Route path="/guide/:guideId" element={<GuideProfileView />} />
+            <Route
+              path="/addtrip"
+              element={
+                <ProtectedRoute isAuthenticated={isAuthenticated}>
+                  <CreateTrip />
+                </ProtectedRoute>
+              }
+            />
+
             <Route
               path="/booking/:tripId"
               element={
@@ -216,12 +249,22 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
+            <Route
+              path="/applications"
+              element={
+                <ProtectedRoute isAuthenticated={isAuthenticated}>
+                  <GuidesApplications />
+                </ProtectedRoute>
+              }
+            />
+
             {/* Catch-all route for 404 */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
-              
-        {/* we can add a Footer component here if needed */}
+        
+        {/* Footer can be added here */}
       </div>
     </Router>
   );

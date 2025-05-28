@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-const API_URL = 'http://localhost:5000';
+const API_URL = 'http://localhost:3000';
 
 interface Application {
   _id: string;
