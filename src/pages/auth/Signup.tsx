@@ -8,7 +8,7 @@ interface SignupProps {
   setIsEmailVerified: (value: boolean) => void;
 }
 
-const Signup: React.FC<SignupProps> = ({ setIsAuthenticated }) => {
+const Signup: React.FC<SignupProps> = ({ setIsAuthenticated, setIsEmailVerified }) => {
   const [formData, setFormData] = useState<CreateUserRequest>({
     name: '',
     email: '',
@@ -31,6 +31,10 @@ const Signup: React.FC<SignupProps> = ({ setIsAuthenticated }) => {
       ...prev,
       [name]: value
     }));
+    // Clear error when user starts typing
+    if (error) {
+      setError('');
+    }
   };
 
   const togglePasswordVisibility = () => {
@@ -80,15 +84,18 @@ const Signup: React.FC<SignupProps> = ({ setIsAuthenticated }) => {
       // Store email for email verification flow
       localStorage.setItem("email", formData.email);
       
-      // Update authentication state
-      localStorage.setItem("isAuthenticated", "true");
+      // Update authentication state - user is registered but not verified
       setIsAuthenticated(true);
-            
+      setIsEmailVerified(false);
+      
+      console.log('Signup successful, navigating to email verification'); // Debug log
+      
       // Redirect to email verification page after successful registration
       navigate('/verify-email');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Registration failed. Please try again.';
       setError(errorMessage);
+      console.error('Signup error:', errorMessage); // Debug log
     } finally {
       setIsLoading(false);
     }
@@ -207,7 +214,13 @@ const Signup: React.FC<SignupProps> = ({ setIsAuthenticated }) => {
                 id="confirmPassword"
                 name="confirmPassword"
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                  // Clear error when user starts typing
+                  if (error) {
+                    setError('');
+                  }
+                }}
                 placeholder="Confirm your password"
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                 required

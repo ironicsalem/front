@@ -8,7 +8,7 @@ interface LoginProps {
   setIsEmailVerified: (value: boolean) => void;
 }
 
-const Login: React.FC<LoginProps> = ({ setIsAuthenticated }) => {
+const Login: React.FC<LoginProps> = ({ setIsAuthenticated, setIsEmailVerified }) => {
   const [formData, setFormData] = useState<LoginRequest>({
     email: "",
     password: ""
@@ -25,6 +25,10 @@ const Login: React.FC<LoginProps> = ({ setIsAuthenticated }) => {
       ...prev,
       [name]: value
     }));
+    // Clear error when user starts typing
+    if (error) {
+      setError("");
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -33,25 +37,38 @@ const Login: React.FC<LoginProps> = ({ setIsAuthenticated }) => {
     setError("");
 
     try {
-      await AuthService.signIn(formData);
+      const response = await AuthService.signIn(formData);
       
       // Store email for potential email verification flow
       localStorage.setItem("email", formData.email);
       
+      // Update authentication state immediately
       setIsAuthenticated(true);
-      localStorage.setItem("isAuthenticated", "true");
       
-      // Give React time to update the state
-      setTimeout(() => {
+      // Set email verification status based on response
+      if (response.user?.verified !== undefined) {
+        setIsEmailVerified(response.user.verified);
+      }
+      
+      // Navigate based on email verification status
+      if (response.user?.verified === false) {
+        // User is authenticated but email not verified
+        navigate("/verify-email");
+      } else {
+        // User is fully authenticated and verified
         navigate("/");
-      }, 100); 
+      }
       
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Login failed. Please try again.";
       
-      // Handle email not verified case
-      if (errorMessage === 'Email not verified.') {
-        setError(errorMessage);
+      // Handle specific error cases
+      if (errorMessage.toLowerCase().includes('email not verified') || 
+          errorMessage.toLowerCase().includes('please verify your email')) {
+        setError("Please verify your email address to continue.");
+        // Set as authenticated but not verified
+        setIsAuthenticated(true);
+        setIsEmailVerified(false);
         setTimeout(() => {
           navigate('/verify-email');
         }, 2000);

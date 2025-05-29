@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
+  useLocation,
 } from "react-router-dom";
 import Navbar from "./components/Navbar";
 
@@ -30,37 +31,80 @@ import Bookings from "./pages/account/Bookings";
 import MyProfile from "./pages/profile/MyProfile";
 
 // Services
-import authService from "./services/AuthService";
+import AuthService from "./services/AuthService";
 
-// Protected route wrapper component
+// Types
+interface AuthState {
+  isAuthenticated: boolean;
+  isEmailVerified: boolean;
+  isLoading: boolean;
+}
+
+// Enhanced Protected route component
 const ProtectedRoute = ({
   children,
   isAuthenticated,
-  redirectPath = "/login",
+  requireEmailVerification = false,
+  isEmailVerified = false,
 }: {
   children: React.ReactNode;
   isAuthenticated: boolean;
-  redirectPath?: string;
+  requireEmailVerification?: boolean;
+  isEmailVerified?: boolean;
 }) => {
+  const location = useLocation();
+  
   if (!isAuthenticated) {
-    return <Navigate to={redirectPath} replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (requireEmailVerification && !isEmailVerified) {
+    return <Navigate to="/verify-email" replace />;
   }
 
   return <>{children}</>;
 };
 
-// Define a custom error type for auth errors
-interface AuthError extends Error {
-  message: string;
-  status?: number;
-}
+// Signup route component to simplify routing logic
+const SignupRoute = ({ 
+  isAuthenticated, 
+  isEmailVerified, 
+  setIsAuthenticated, 
+  setIsEmailVerified 
+}: {
+  isAuthenticated: boolean;
+  isEmailVerified: boolean;
+  setIsAuthenticated: (value: boolean) => void;
+  setIsEmailVerified: (value: boolean) => void;
+}) => {
+  if (isAuthenticated && isEmailVerified) {
+    return <Navigate to="/" replace />;
+  }
+  
+  if (isAuthenticated && !isEmailVerified) {
+    return <Navigate to="/verify-email" replace />;
+  }
+  
+  return (
+    <Signup
+      setIsAuthenticated={setIsAuthenticated}
+      setIsEmailVerified={setIsEmailVerified}
+    />
+  );
+};
 
 function App() {
-  // State management
+  // Consolidated auth state
+  const [authState, setAuthState] = useState<AuthState>({
+    isAuthenticated: false,
+    isEmailVerified: false,
+    isLoading: true,
+  });
+  
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [isEmailVerified, setIsEmailVerified] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  
+  // Use ref to prevent race conditions
+  const isVerifyingAuth = useRef(false);
 
   // Handle scroll effect for navbar
   useEffect(() => {
@@ -72,63 +116,125 @@ function App() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Enhanced auth verification with race condition protection
+  const verifyAuth = useCallback(async (skipLoadingState = false) => {
+    // Prevent concurrent verification calls
+    if (isVerifyingAuth.current) return;
+    
+    isVerifyingAuth.current = true;
+    
+    if (!skipLoadingState) {
+      setAuthState(prev => ({ ...prev, isLoading: true }));
+    }
+
+    try {
+      // Validate token format first
+      const token = localStorage.getItem('token');
+      if (!token || token.trim() === '') {
+        throw new Error('No valid token found');
+      }
+      
+      // Verify token
+      await AuthService.verifyToken();
+      
+      // Get user info only after successful token verification
+      const user = await AuthService.getCurrentUser();
+      
+      setAuthState({
+        isAuthenticated: true,
+        isEmailVerified: user?.verified || false,
+        isLoading: false,
+      });
+    } catch (error) {
+      console.error("Authentication verification error:", error);
+      
+      // Clear auth state on any error
+      setAuthState({
+        isAuthenticated: false,
+        isEmailVerified: false,
+        isLoading: false,
+      });
+      
+      // Only clear token if it exists (prevent unnecessary operations)
+      if (localStorage.getItem('token')) {
+        localStorage.removeItem('token');
+      }
+    } finally {
+      isVerifyingAuth.current = false;
+    }
+  }, []);
+
   // Handle authentication verification
   useEffect(() => {
-    const verifyAuth = async () => {
-      try {
-        // First check if token exists in localStorage before attempting verification
-        const token = localStorage.getItem('token');
-        if (!token) {
-          setIsAuthenticated(false);
-          setIsLoading(false);
-          return;
-        }
-        
-        // Use the AuthService verifyToken method to check auth status
-        await AuthService.verifyToken();
-        setIsAuthenticated(true);
-        
-        // Fetch the current user to check email verification
-        const user = await AuthService.getCurrentUser();
-        setIsEmailVerified(user?.verified || false);
-      } catch (error) {
-        console.error("Authentication verification error:", error);
-        
-        // Handle the error - cast to our custom error type
-        const authError = error as AuthError;
-        
-        // If error is specifically about invalid/expired token, clear it
-        if (authError.message?.includes('Invalid or expired token')) {
-          localStorage.removeItem('token');
-        }
-        
-        setIsAuthenticated(false);
-      } finally {
-        setIsLoading(false);
-      }
+    verifyAuth();
+
+    // Event handlers
+    const handleAuthError = () => {
+      setAuthState(prev => ({
+        ...prev,
+        isAuthenticated: false,
+        isEmailVerified: false,
+      }));
     };
 
-    verifyAuth();
+    const handleAuthLogout = () => {
+      setAuthState(prev => ({
+        ...prev,
+        isAuthenticated: false,
+        isEmailVerified: false,
+      }));
+    };
+
+    const handleEmailVerified = () => {
+      setAuthState(prev => ({ ...prev, isEmailVerified: true }));
+      // Re-verify without loading state to get updated user info
+      verifyAuth(true);
+    };
 
     // Listen for token changes in localStorage
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'token') {
-        verifyAuth(); // Re-verify when token changes rather than just setting state
+        if (e.newValue === null) {
+          // Token was removed
+          setAuthState(prev => ({
+            ...prev,
+            isAuthenticated: false,
+            isEmailVerified: false,
+          }));
+        } else if (e.newValue !== e.oldValue && e.newValue) {
+          // Token changed, re-verify
+          verifyAuth();
+        }
       }
     };
 
+    // Add event listeners
     window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
-  }, []);
+    window.addEventListener("auth-error", handleAuthError);
+    window.addEventListener("auth-logout", handleAuthLogout);
+    window.addEventListener("email-verified", handleEmailVerified);
 
-  // Loading indicator
-  if (isLoading) {
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("auth-error", handleAuthError);
+      window.removeEventListener("auth-logout", handleAuthLogout);
+      window.removeEventListener("email-verified", handleEmailVerified);
+    };
+  }, [verifyAuth]);
+
+  // Enhanced loading indicator
+  if (authState.isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-amber-600"></div>
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-amber-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
       </div>
     );
   }
+
+  const { isAuthenticated, isEmailVerified } = authState;
 
   return (
     <Router>
@@ -137,7 +243,9 @@ function App() {
         <Navbar
           isScrolled={isScrolled}
           isAuthenticated={isAuthenticated}
-          setIsAuthenticated={setIsAuthenticated}
+          setIsAuthenticated={(value: boolean) => 
+            setAuthState(prev => ({ ...prev, isAuthenticated: value }))
+          }
         />
 
         {/* Main content */}
@@ -160,8 +268,12 @@ function App() {
                   <Navigate to="/" replace />
                 ) : (
                   <Login 
-                    setIsAuthenticated={setIsAuthenticated}
-                    setIsEmailVerified={setIsEmailVerified} 
+                    setIsAuthenticated={(value: boolean) => 
+                      setAuthState(prev => ({ ...prev, isAuthenticated: value }))
+                    }
+                    setIsEmailVerified={(value: boolean) => 
+                      setAuthState(prev => ({ ...prev, isEmailVerified: value }))
+                    } 
                   />
                 )
               }
@@ -170,23 +282,29 @@ function App() {
             <Route
               path="/signup"
               element={
-                isAuthenticated && !isEmailVerified ? (
-                  <Navigate to="/verify-email" replace />
-                ) : isAuthenticated && isEmailVerified ? (
-                  <Navigate to="/" replace />
-                ) : (
-                  <Signup
-                    setIsAuthenticated={setIsAuthenticated}
-                    setIsEmailVerified={setIsEmailVerified}
-                  />
-                )
+                <SignupRoute
+                  isAuthenticated={isAuthenticated}
+                  isEmailVerified={isEmailVerified}
+                  setIsAuthenticated={(value: boolean) => 
+                    setAuthState(prev => ({ ...prev, isAuthenticated: value }))
+                  }
+                  setIsEmailVerified={(value: boolean) => 
+                    setAuthState(prev => ({ ...prev, isEmailVerified: value }))
+                  }
+                />
               }
             />
 
             {/* Email verification */}
             <Route
               path="/verify-email"
-              element={<VerifyEmail setIsEmailVerified={setIsEmailVerified} />}
+              element={
+                <VerifyEmail 
+                  setIsEmailVerified={(value: boolean) => 
+                    setAuthState(prev => ({ ...prev, isEmailVerified: value }))
+                  } 
+                />
+              }
             />
 
             {/* Password recovery routes */}
@@ -211,16 +329,15 @@ function App() {
                   <Account />
                 </ProtectedRoute>
               }
-            >
-            </Route>
+            />
             
             <Route
-                path="/profile"
-                element={
-                  <ProtectedRoute isAuthenticated={isAuthenticated}>
-                    <MyProfile />
-                  </ProtectedRoute>
-                }
+              path="/profile"
+              element={
+                <ProtectedRoute isAuthenticated={isAuthenticated}>
+                  <MyProfile />
+                </ProtectedRoute>
+              }
             />
 
             <Route
@@ -235,7 +352,11 @@ function App() {
             <Route
               path="/addtrip"
               element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
+                <ProtectedRoute 
+                  isAuthenticated={isAuthenticated}
+                  requireEmailVerification={true}
+                  isEmailVerified={isEmailVerified}
+                >
                   <CreateTrip />
                 </ProtectedRoute>
               }
@@ -253,7 +374,11 @@ function App() {
             <Route
               path="/applications"
               element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
+                <ProtectedRoute 
+                  isAuthenticated={isAuthenticated}
+                  requireEmailVerification={true}
+                  isEmailVerified={isEmailVerified}
+                >
                   <GuidesApplications />
                 </ProtectedRoute>
               }
@@ -264,7 +389,6 @@ function App() {
           </Routes>
         </main>
         
-        {/* Footer can be added here */}
       </div>
     </Router>
   );

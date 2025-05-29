@@ -23,6 +23,20 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// Fix Issue #4: Better token expiration handling
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Clear token on any 401 response
+      localStorage.removeItem('token');
+      // Dispatch custom event for App.tsx to listen to
+      window.dispatchEvent(new Event('auth-error'));
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Additional interfaces for auth operations not covered in Types.ts
 export interface VerifyEmailData {
   email: string;
@@ -38,9 +52,9 @@ export interface VerifyResetCodeData {
   code: string;
 }
 
+// Fix Issue #2: Remove token from interface since it goes in header
 export interface SetNewPasswordData {
-  token: string;
-  newPassword: string;
+  password: string;  // Changed from newPassword to password
 }
 
 export interface AuthResponse {
@@ -61,9 +75,9 @@ const AuthService = {
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
-        // Handle rate limiting specifically
+        // Fix Issue #3: Consistent error handling
         if (error.response.status === 429) {
-          throw new Error('Too many requests. Please try again later.');
+          throw new Error(error.response.data.message || 'Too many requests. Please try again later.');
         }
         throw new Error(error.response.data.error || 'Failed to sign up');
       }
@@ -81,9 +95,9 @@ const AuthService = {
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
-        // Handle rate limiting specifically
+        // Fix Issue #3: Consistent error handling
         if (error.response.status === 429) {
-          throw new Error('Too many requests. Please try again later.');
+          throw new Error(error.response.data.message || 'Too many requests. Please try again later.');
         }
         throw new Error(error.response.data.error || 'Failed to sign in');
       }
@@ -96,8 +110,13 @@ const AuthService = {
     try {
       const response = await api.post('/signout');
       localStorage.removeItem('token');
+      // Dispatch event for state sync
+      window.dispatchEvent(new Event('auth-logout'));
       return response.data;
     } catch (error) {
+      // Always remove token on signout, even if request fails
+      localStorage.removeItem('token');
+      window.dispatchEvent(new Event('auth-logout'));
       if (axios.isAxiosError(error) && error.response) {
         throw new Error(error.response.data.error || 'Failed to sign out');
       }
@@ -112,9 +131,9 @@ const AuthService = {
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
-        // Handle rate limiting specifically for this endpoint
+        // Fix Issue #3: Consistent error handling
         if (error.response.status === 429) {
-          throw new Error('Too many requests. Please try again later.');
+          throw new Error(error.response.data.message || 'Too many requests. Please try again later.');
         }
         throw new Error(error.response.data.error || 'Failed to request password reset');
       }
@@ -126,12 +145,16 @@ const AuthService = {
   verifyResetCode: async (data: VerifyResetCodeData): Promise<ApiResponse<{ token?: string }>> => {
     try {
       const response = await api.post('/verify-reset-code', data);
+      // Store the temporary token for password reset
+      if (response.data.token) {
+        localStorage.setItem('token', response.data.token);
+      }
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
-        // Handle rate limiting specifically for this endpoint
+        // Fix Issue #3: Consistent error handling
         if (error.response.status === 429) {
-          throw new Error('Too many requests. Please try again later.');
+          throw new Error(error.response.data.message || 'Too many requests. Please try again later.');
         }
         throw new Error(error.response.data.error || 'Invalid or expired reset code');
       }
@@ -139,16 +162,17 @@ const AuthService = {
     }
   },
 
-  // Set new password after reset - matches POST /set-new-password (rate limited)
-  setNewPassword: async (data: SetNewPasswordData): Promise<ApiResponse<null>> => {
+  // Fix Issue #2 & #5: Set new password after reset
+  setNewPassword: async (password: string): Promise<ApiResponse<null>> => {
     try {
-      const response = await api.post('/set-new-password', data);
+      // Token is sent via Authorization header by interceptor
+      const response = await api.post('/set-new-password', { password });
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
-        // Handle rate limiting specifically for this endpoint
+        // Fix Issue #3: Consistent error handling
         if (error.response.status === 429) {
-          throw new Error('Too many requests. Please try again later.');
+          throw new Error(error.response.data.message || 'Too many requests. Please try again later.');
         }
         throw new Error(error.response.data.error || 'Failed to set new password');
       }
@@ -157,9 +181,15 @@ const AuthService = {
   },
 
   // Verify email with verification code - matches POST /verify-email
-  verifyEmail: async (verifyData: VerifyEmailData): Promise<ApiResponse<null>> => {
+  verifyEmail: async (verifyData: VerifyEmailData): Promise<ApiResponse<{ token?: string }>> => {
     try {
       const response = await api.post('/verify-email', verifyData);
+      // Update token if a new one is provided
+      if (response.data.token) {
+        localStorage.setItem('token', response.data.token);
+        // Dispatch event for state sync
+        window.dispatchEvent(new Event('email-verified'));
+      }
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
@@ -175,9 +205,8 @@ const AuthService = {
       const response = await api.get('/verify');
       return response.data;
     } catch (error) {
-      localStorage.removeItem('token');
+      // Token is already removed by interceptor on 401
       if (axios.isAxiosError(error) && error.response) {
-        // Handle specific middleware responses
         if (error.response.status === 401) {
           throw new Error(error.response.data.message || 'Unauthorized');
         }
@@ -207,9 +236,7 @@ const AuthService = {
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
-        // Handle specific middleware responses
         if (error.response.status === 401) {
-          localStorage.removeItem('token'); // Remove invalid token
           throw new Error(error.response.data.message || 'Unauthorized');
         }
         throw new Error(error.response.data.message || 'Failed to get current user');

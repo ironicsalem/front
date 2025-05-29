@@ -26,11 +26,12 @@ const ResetPassword: React.FC = () => {
   const navigate = useNavigate();
   
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
+    // Check for reset token - should be in the standard 'token' key after verifyResetCode
+    const token = localStorage.getItem('token');
     if (!token) {
       setState(prev => ({
         ...prev,
-        error: 'Invalid password reset link. Please request a new one.',
+        error: 'Invalid password reset session. Please request a new password reset.',
       }));
     }
   }, []);
@@ -79,6 +80,15 @@ const ResetPassword: React.FC = () => {
       return;
     }
     
+    // Validate password strength (optional but recommended)
+    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(state.password)) {
+      setState(prev => ({
+        ...prev,
+        error: 'Password must contain at least one uppercase letter, one lowercase letter, and one number',
+      }));
+      return;
+    }
+    
     setState(prev => ({
       ...prev,
       isLoading: true,
@@ -86,16 +96,14 @@ const ResetPassword: React.FC = () => {
     }));
 
     try {
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem('token');
       
       if (!token) {
         throw new Error('No reset token found. Please request a new password reset.');
       }
 
-      await AuthService.setNewPassword({
-        token: token,
-        newPassword: state.password
-      });
+      // Use the updated AuthService method that expects just the password
+      await AuthService.setNewPassword(state.password);
 
       setState(prev => ({
         ...prev,
@@ -103,28 +111,58 @@ const ResetPassword: React.FC = () => {
         success: true,
       }));
       
-      // Clean up stored tokens
-      localStorage.removeItem('authToken');
+      // Clean up stored tokens and email
+      localStorage.removeItem('token');
       localStorage.removeItem('email');
       
       // Redirect to login after 3 seconds
       setTimeout(() => {
-        navigate('/login');
+        navigate('/login', { 
+          replace: true,
+          state: { message: 'Password reset successful! Please log in with your new password.' }
+        });
       }, 3000);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.';
       
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-        error: errorMessage,
-      }));
+      // If token is invalid, clean up and redirect
+      if (errorMessage.toLowerCase().includes('unauthorized') || 
+          errorMessage.toLowerCase().includes('invalid') ||
+          errorMessage.toLowerCase().includes('expired')) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('email');
+        setState(prev => ({
+          ...prev,
+          isLoading: false,
+          error: 'Your reset session has expired. Please request a new password reset.',
+        }));
+        
+        setTimeout(() => {
+          navigate('/forgot-password', { replace: true });
+        }, 3000);
+      } else {
+        setState(prev => ({
+          ...prev,
+          isLoading: false,
+          error: errorMessage,
+        }));
+      }
     }
   };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-opacity-75 bg-gray-800">
       <div className="bg-white rounded-lg p-8 w-full max-w-md relative">
+        {/* Close button */}
+        <div className="absolute top-4 right-4">
+          <button 
+            className="text-gray-400 hover:text-gray-600"
+            onClick={() => navigate('/login')}
+          >
+            &times;
+          </button>
+        </div>
+
         {/* Header */}
         <h2 className="text-2xl font-bold mb-2 text-center text-gray-800">
           Reset Your Password
@@ -150,7 +188,7 @@ const ResetPassword: React.FC = () => {
         )}
         
         {/* Form */}
-        {!state.success && (
+        {!state.success && !state.error.includes('expired') && !state.error.includes('Invalid password reset session') && (
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Password Field */}
             <div>
@@ -168,11 +206,13 @@ const ResetPassword: React.FC = () => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                   required
                   minLength={8}
+                  disabled={state.isLoading}
                 />
                 <button
                   type="button"
                   onClick={togglePasswordVisibility}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  disabled={state.isLoading}
                 >
                   {state.showPassword ? (
                     <span className="w-5 h-5 flex items-center justify-center">
@@ -191,7 +231,7 @@ const ResetPassword: React.FC = () => {
                 </button>
               </div>
               <p className="mt-1 text-xs text-gray-500">
-                Must be at least 8 characters long
+                Must be at least 8 characters long with uppercase, lowercase, and numbers
               </p>
             </div>
             
@@ -211,16 +251,18 @@ const ResetPassword: React.FC = () => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                   required
                   minLength={8}
+                  disabled={state.isLoading}
                 />
                 <button
                   type="button"
                   onClick={toggleConfirmPasswordVisibility}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  disabled={state.isLoading}
                 >
                   {state.showConfirmPassword ? (
                     <span className="w-5 h-5 flex items-center justify-center">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
                       </svg>
                     </span>
                   ) : (
@@ -247,16 +289,29 @@ const ResetPassword: React.FC = () => {
         
         {/* Footer Links */}
         <div className="text-center mt-6">
-          <a 
-            href="#" 
-            className="text-orange-500 hover:underline font-medium"
-            onClick={(e) => {
-              e.preventDefault();
-              navigate('/login');
-            }}
-          >
-            Back to Login
-          </a>
+          {state.error.includes('expired') || state.error.includes('Invalid password reset session') ? (
+            <a 
+              href="#" 
+              className="text-orange-500 hover:underline font-medium"
+              onClick={(e) => {
+                e.preventDefault();
+                navigate('/forgot-password');
+              }}
+            >
+              Request New Password Reset
+            </a>
+          ) : (
+            <a 
+              href="#" 
+              className="text-orange-500 hover:underline font-medium"
+              onClick={(e) => {
+                e.preventDefault();
+                navigate('/login');
+              }}
+            >
+              Back to Login
+            </a>
+          )}
         </div>
       </div>
     </div>

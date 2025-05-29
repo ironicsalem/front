@@ -22,21 +22,32 @@ const ForgotPassword: React.FC = () => {
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setState({
-      ...state,
+    setState(prev => ({
+      ...prev,
       email: e.target.value,
       error: '', // Clear error when user starts typing
-    });
+      success: '', // Clear success message when user starts typing
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setState({
-      ...state,
+    
+    // Validate email before sending request
+    if (!state.email.trim()) {
+      setState(prev => ({
+        ...prev,
+        error: 'Email address is required',
+      }));
+      return;
+    }
+
+    setState(prev => ({
+      ...prev,
       isLoading: true,
       error: '',
       success: '',
-    });
+    }));
 
     try {
       await AuthService.forgotPassword({ email: state.email });
@@ -44,25 +55,50 @@ const ForgotPassword: React.FC = () => {
       // Store email for the next step in the flow
       localStorage.setItem('email', state.email);
 
-      setState({
-        ...state,
+      setState(prev => ({
+        ...prev,
         resetSent: true,
         isLoading: false,
         success: 'Password reset code has been sent to your email address.',
-      });
+      }));
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.';
       
-      setState({
-        ...state,
+      setState(prev => ({
+        ...prev,
         isLoading: false,
         error: errorMessage,
-      });
+      }));
     }
   };
 
   const handleSendCodeClick = () => {
     navigate('/verify-reset-password');
+  };
+
+  const handleResendCode = async () => {
+    setState(prev => ({
+      ...prev,
+      isLoading: true,
+      error: '',
+      success: '',
+    }));
+
+    try {
+      await AuthService.forgotPassword({ email: state.email });
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        success: 'New password reset code has been sent to your email address.',
+      }));
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to resend reset code. Please try again.';
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: errorMessage,
+      }));
+    }
   };
 
   return (
@@ -118,6 +154,7 @@ const ForgotPassword: React.FC = () => {
                 placeholder="Enter your email address"
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                 required
+                disabled={state.isLoading}
               />
             </div>
             
@@ -137,9 +174,18 @@ const ForgotPassword: React.FC = () => {
             >
               I Have a Code
             </button>
+            
+            <button
+              onClick={handleResendCode}
+              disabled={state.isLoading}
+              className={`w-full ${state.isLoading ? 'bg-gray-400' : 'bg-gray-500 hover:bg-gray-600'} text-white py-2 px-4 rounded-md transition duration-300`}
+            >
+              {state.isLoading ? 'Sending...' : 'Resend Code'}
+            </button>
+            
             <button
               onClick={() => navigate('/login')}
-              className="w-full bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-md transition duration-300"
+              className="w-full bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 px-4 rounded-md transition duration-300"
             >
               Back to Login
             </button>

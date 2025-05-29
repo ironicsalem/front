@@ -226,7 +226,7 @@ const Booking: React.FC = () => {
       
       // Redirect after 2 seconds
       setTimeout(() => {
-        navigate('/account/bookings');
+        navigate('/profile');
       }, 2000);
     } catch (error) {
       console.error('Error creating booking:', error);

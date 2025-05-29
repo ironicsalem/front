@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AuthService from "../../services/AuthService";
 
@@ -11,68 +11,105 @@ const VerifyResetPassword: React.FC<VerifyResetPasswordProps> = ({ setIsEmailVer
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [isResending, setIsResending] = useState(false);
 
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const storedEmail = localStorage.getItem("email");
+    
+    if (!storedEmail) {
+      setError("No email found. Please request password reset again.");
+    } else {
+      setEmail(storedEmail);
+    }
+  }, []);
+
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setError("");
-    setSuccess("");
-
-    const email = localStorage.getItem("email");
-
-    if (!email) {
-      setError("No email found. Please request password reset again.");
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      const response = await AuthService.verifyResetCode({
-        email,
-        code,
-      });
-
-      // Store the reset token for the next step
-      if (response.data?.token) {
-        localStorage.setItem('authToken', response.data.token);
-      }
-
-      setSuccess(response.message || "Reset code verified successfully!");
-
-      // Set email verified to true after successful verification
-      setIsEmailVerified(true);
-
-      setTimeout(() => {
-        navigate("/reset-password");
-      }, 1500);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Verification failed. Please try again.";
-      setError(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleResendCode = async () => {
-    const email = localStorage.getItem("email");
     
     if (!email) {
       setError("No email found. Please request password reset again.");
       return;
     }
 
+    if (!code.trim()) {
+      setError("Please enter the reset code.");
+      return;
+    }
+
+    setIsLoading(true);
+    setError("");
+    setSuccess("");
+
     try {
-      setError("");
-      setSuccess("");
+      const response = await AuthService.verifyResetCode({
+        email,
+        code: code.trim(),
+      });
+
+      setSuccess(response.message || "Reset code verified successfully!");
+
+      // The AuthService already stores the token for the next step
+      // Set email verified to true after successful verification
+      setIsEmailVerified(true);
+
+      setTimeout(() => {
+        navigate("/reset-password", { replace: true });
+      }, 1500);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Verification failed. Please try again.";
+      setError(errorMessage);
       
+      // Handle specific error cases
+      if (errorMessage.toLowerCase().includes('expired') || 
+          errorMessage.toLowerCase().includes('invalid')) {
+        // Offer to resend code automatically for expired/invalid codes
+        setTimeout(() => {
+          setError(errorMessage + " Would you like to request a new code?");
+        }, 2000);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    if (!email) {
+      setError("No email found. Please request password reset again.");
+      return;
+    }
+
+    setIsResending(true);
+    setError("");
+    setSuccess("");
+    
+    try {
       await AuthService.forgotPassword({ email });
       setSuccess("New reset code has been sent to your email.");
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to resend reset code.";
       setError(errorMessage);
+    } finally {
+      setIsResending(false);
     }
+  };
+
+  const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCode(e.target.value);
+    // Clear error when user starts typing
+    if (error) {
+      setError("");
+    }
+    // Clear success when user starts typing a new code
+    if (success) {
+      setSuccess("");
+    }
+  };
+
+  const handleBackToForgotPassword = () => {
+    navigate('/forgot-password', { replace: true });
   };
 
   return (
@@ -92,7 +129,11 @@ const VerifyResetPassword: React.FC<VerifyResetPasswordProps> = ({ setIsEmailVer
         </h2>
 
         <p className="text-gray-600 text-center mb-6">
-          We've sent a password reset code to your email address. Please enter the code below to proceed with resetting your password.
+          We've sent a password reset code to{" "}
+          <span className="font-medium text-gray-800">
+            {email || "your email address"}
+          </span>
+          . Please enter the code below to proceed with resetting your password.
         </p>
 
         {error && (
@@ -116,48 +157,64 @@ const VerifyResetPassword: React.FC<VerifyResetPasswordProps> = ({ setIsEmailVer
               type="text"
               id="code"
               value={code}
-              onChange={(e) => {
-                setCode(e.target.value);
-                setError(""); // Clear error when user starts typing
-              }}
+              onChange={handleCodeChange}
               placeholder="Enter your reset code"
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
               required
+              disabled={isLoading || !email}
+              maxLength={6} // Assuming 6-digit codes
+              autoComplete="one-time-code"
             />
           </div>
 
           <button
             type="submit"
-            disabled={isLoading}
-            className={`w-full ${isLoading ? "bg-orange-400" : "bg-orange-500 hover:bg-orange-600"} text-white py-2 px-4 rounded-md transition duration-300 mb-4`}
+            disabled={isLoading || !email}
+            className={`w-full ${
+              isLoading || !email
+                ? "bg-orange-400"
+                : "bg-orange-500 hover:bg-orange-600"
+            } text-white py-2 px-4 rounded-md transition duration-300 mb-4`}
           >
             {isLoading ? "Verifying..." : "Verify Code"}
           </button>
         </form>
 
         {/* Resend Code Button */}
-        <div className="text-center">
+        <div className="text-center mb-4">
           <span className="text-gray-600">Didn't receive the code? </span>
           <button
             onClick={handleResendCode}
-            className="text-orange-500 hover:underline font-medium"
+            disabled={isResending || !email}
+            className={`${
+              isResending || !email
+                ? "text-orange-400"
+                : "text-orange-500 hover:underline"
+            } font-medium`}
           >
-            Resend Code
+            {isResending ? "Sending..." : "Resend Code"}
           </button>
         </div>
 
         {/* Footer Links */}
-        <div className="text-center mt-6">
-          <a 
-            href="#" 
-            className="text-orange-500 hover:underline font-medium"
-            onClick={(e) => {
-              e.preventDefault();
-              navigate('/forgot-password');
-            }}
-          >
-            Back to Forgot Password
-          </a>
+        <div className="text-center mt-6 space-y-2">
+          <div>
+            <a 
+              href="#" 
+              className="text-orange-500 hover:underline font-medium"
+              onClick={(e) => {
+                e.preventDefault();
+                handleBackToForgotPassword();
+              }}
+            >
+              Back to Forgot Password
+            </a>
+          </div>
+          
+          {/* Additional help text */}
+          <p className="text-xs text-gray-500">
+            Check your spam folder if you don't see the email
+          </p>
         </div>
       </div>
     </div>
