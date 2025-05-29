@@ -4,7 +4,7 @@ interface HeroProps {
   backgroundImage: string;
   title: string;
   subtitle: string;
-  children?: React.ReactNode; // Added children prop
+  children?: React.ReactNode;
 }
 
 const Hero: React.FC<HeroProps> = ({ backgroundImage, title, subtitle, children }) => {
@@ -19,40 +19,32 @@ const Hero: React.FC<HeroProps> = ({ backgroundImage, title, subtitle, children 
   }, []);
 
   return (
-    <div
-      className="relative h-screen flex items-center justify-center overflow-hidden"
-      style={{
-        marginTop: '-64px',
-        paddingTop: '64px',
-      }}
-    >
+    <div className="relative h-screen flex items-center justify-center overflow-hidden -mt-16 pt-16">
       {/* Enhanced background with parallax effect */}
       <div
-        className="absolute inset-0 z-0 transition-transform duration-700 ease-out"
+        className="absolute inset-0 bg-cover bg-center transition-transform duration-700 ease-out"
         style={{
           backgroundImage: `url(${backgroundImage})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
           transform: `scale(${1 + scrollPosition * 0.0005})`,
-          willChange: 'transform',
+          zIndex: 1,
         }}
       >
         {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/10"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/10" style={{ zIndex: 2 }}></div>
 
         {/* Subtle animated particles */}
-        <div className="absolute inset-0 opacity-20">
+        <div className="absolute inset-0 opacity-20" style={{ zIndex: 3 }}>
           {[...Array(20)].map((_, i) => (
             <div
               key={i}
-              className="absolute rounded-full bg-white"
+              className="absolute rounded-full bg-white animate-pulse"
               style={{
                 width: `${Math.random() * 4 + 1}px`,
                 height: `${Math.random() * 4 + 1}px`,
                 top: `${Math.random() * 100}%`,
                 left: `${Math.random() * 100}%`,
-                animation: `float ${Math.random() * 10 + 10}s linear infinite`,
-                animationDelay: `${Math.random() * 5}s`,
+                animationDuration: `${Math.random() * 3 + 2}s`,
+                animationDelay: `${Math.random() * 2}s`,
               }}
             />
           ))}
@@ -60,28 +52,24 @@ const Hero: React.FC<HeroProps> = ({ backgroundImage, title, subtitle, children 
       </div>
 
       {/* Content with fade-in effect */}
-      <div className="relative z-10 text-center text-white px-4">
-        <h1
-          className="text-5xl md:text-6xl lg:text-7xl font-bold mb-4 animate-fadeInUp"
-          style={{ animationDelay: '0.3s' }}
-        >
+      <div className="relative text-center text-white px-4" style={{ zIndex: 10 }}>
+        <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-4 opacity-100 transition-all duration-1000 ease-out delay-300">
           {title}
         </h1>
-        <p
-          className="text-xl md:text-2xl lg:text-3xl font-light animate-fadeInUp"
-          style={{ animationDelay: '0.6s' }}
-        >
+        <p className="text-xl md:text-2xl lg:text-3xl font-light opacity-100 transition-all duration-1000 ease-out delay-500">
           {subtitle}
         </p>
 
         {/* Render children here (e.g., button) */}
-        <div className="mt-8 relative z-10">{children}</div>
+        <div className="mt-8 relative opacity-100 transition-all duration-1000 ease-out delay-700" style={{ zIndex: 11 }}>
+          {children}
+        </div>
       </div>
 
       {/* Enhanced scroll down indicator */}
-      <div className="absolute bottom-8 left-0 right-0 flex justify-center z-10">
-        <div className="animate-bounce-slow flex flex-col items-center">
-          <span className="text-sm mb-2 opacity-80">Scroll</span>
+      <div className="absolute bottom-8 left-0 right-0 flex justify-center" style={{ zIndex: 10 }}>
+        <div className="animate-bounce flex flex-col items-center">
+          <span className="text-sm mb-2 opacity-80 text-white">Scroll</span>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             className="h-6 w-6 text-white opacity-90"
@@ -98,31 +86,6 @@ const Hero: React.FC<HeroProps> = ({ backgroundImage, title, subtitle, children 
           </svg>
         </div>
       </div>
-
-      {/* Add these styles to your global CSS */}
-      <style jsx>{`
-        @keyframes float {
-          0% { transform: translateY(0) translateX(0); opacity: 0; }
-          10% { opacity: 1; }
-          100% { transform: translateY(-100vh) translateX(20px); opacity: 0; }
-        }
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fadeInUp {
-          animation: fadeInUp 1s ease-out forwards;
-          opacity: 0;
-        }
-        .animate-bounce-slow {
-          animation: bounce 2s infinite;
-        }
-        @keyframes bounce {
-          0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-          40% { transform: translateY(-10px); }
-          60% { transform: translateY(-5px); }
-        }
-      `}</style>
     </div>
   );
 };

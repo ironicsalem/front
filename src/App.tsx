@@ -12,22 +12,17 @@ import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
-import SearchResults from "./pages/SearchResults";
 import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
 import ForgotPassword from "./pages/auth/ForgetPassword";
-import CityOverview from "./pages/CityOverview";
+import CityPage from "./pages/City";
 import ResetPassword from "./pages/auth/ResetPassword";
-import Account from "./pages/account/Account";
 import VerifyEmail from './pages/auth/VerifyEmail';
-import ApplyForm from './pages/ApplyForm';
-import GuidesApplications from "./pages/applicationHandling";
 import TripsPage from "./pages/Trips";
-import Guide from "./pages/Guide";
+import Guide from "./GuidePage/Guide";
 import CreateTrip from "./pages/trip_creation/CreateTrip";
 import TripDetails from "./pages/TripDetails";
 import Booking from "./components/Booking";
-import Bookings from "./pages/account/Bookings";
 import MyProfile from "./pages/profile/MyProfile";
 
 // Services
@@ -255,8 +250,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
-            <Route path="/search" element={<SearchResults />} />
-            <Route path="/city/:cityName" element={<CityOverview />} />
+            <Route path="/city/:cityName" element={<CityPage />} />
             <Route path="/trip/:id" element={<TripDetails />} />
             <Route path="/guide/:guideId" element={<Guide />} />
 
@@ -315,36 +309,15 @@ function App() {
               element={<VerifyEmail setIsEmailVerified={() => {}} />} 
             />
 
-            {/* Application routes */}
-            <Route path="/apply" element={<ApplyForm />} />
-            
             {/* Trip exploration */}
             <Route path="/trips" element={<TripsPage />} />
 
             {/* Protected routes - require authentication */}
             <Route
-              path="/account/*"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <Account />
-                </ProtectedRoute>
-              }
-            />
-            
-            <Route
               path="/profile"
               element={
                 <ProtectedRoute isAuthenticated={isAuthenticated}>
                   <MyProfile />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/bookings"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <Bookings />
                 </ProtectedRoute>
               }
             />
@@ -367,19 +340,6 @@ function App() {
               element={
                 <ProtectedRoute isAuthenticated={isAuthenticated}>
                   <Booking />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/applications"
-              element={
-                <ProtectedRoute 
-                  isAuthenticated={isAuthenticated}
-                  requireEmailVerification={true}
-                  isEmailVerified={isEmailVerified}
-                >
-                  <GuidesApplications />
                 </ProtectedRoute>
               }
             />
