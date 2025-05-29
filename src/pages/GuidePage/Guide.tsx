@@ -8,10 +8,10 @@ import {
 } from 'lucide-react';
 
 // Import services
-import GuideService from '../services/GuideService';
-import ReviewService from '../services/ReviewService';
-import TripService from '../services/TripService';
-import AuthService from '../services/AuthService';
+import GuideService from '../../services/GuideService';
+import ReviewService from '../../services/ReviewService';
+import TripService from '../../services/TripService';
+import AuthService from '../../services/AuthService';
 
 // Import components
 import StarRating from './shared/StarRating';
@@ -27,8 +27,8 @@ import type {
   PopulatedReview, 
   Post, 
   BaseUser 
-} from '../types/Types';
-import type { Trip } from '../services/TripService';
+} from '../../types/Types';
+import type { Trip } from '../../services/TripService';
 
 // Interface for the actual API response (Guide with populated userId)
 interface GuideWithPopulatedUser extends Omit<Guide, 'userId'> {

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Save, X } from 'lucide-react';
 import StarRating from './StarRating';
 import { InlineSpinner } from './LoadingSpinner';
-import type { PopulatedReview } from '../../types/Types';
+import type { PopulatedReview } from '../../../types/Types';
 
 interface ReviewFormData {
   rating: number;

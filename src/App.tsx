@@ -19,11 +19,11 @@ import CityPage from "./pages/City";
 import ResetPassword from "./pages/auth/ResetPassword";
 import VerifyEmail from './pages/auth/VerifyEmail';
 import TripsPage from "./pages/Trips";
-import Guide from "./GuidePage/Guide";
+import Guide from "./pages/GuidePage/Guide";
 import CreateTrip from "./pages/trip_creation/CreateTrip";
 import TripDetails from "./pages/TripDetails";
 import Booking from "./components/Booking";
-import MyProfile from "./pages/profile/MyProfile";
+import MyProfile from "./pages/MyProfilePage/MyProfile";
 
 // Services
 import AuthService from "./services/AuthService";

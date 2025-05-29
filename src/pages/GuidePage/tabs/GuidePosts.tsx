@@ -10,7 +10,7 @@ import {
   Clock
 } from 'lucide-react';
 import { CenteredSpinner } from '../shared/LoadingSpinner';
-import type { Post } from '../../types/Types';
+import type { Post } from '../../../types/Types';
 
 interface GuidePostsProps {
   posts: Post[];

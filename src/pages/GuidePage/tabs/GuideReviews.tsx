@@ -4,8 +4,8 @@ import { Star, User as UserIcon, Edit2, Trash2 } from 'lucide-react';
 import StarRating from '../shared/StarRating';
 import { CenteredSpinner } from '../shared/LoadingSpinner';
 import ReviewForm from '../shared/ReviewForm';
-import ReviewService, { CreateReviewData } from '../../services/ReviewService';
-import type { PopulatedReview, BaseUser } from '../../types/Types';
+import ReviewService, { CreateReviewData } from '../../../services/ReviewService';
+import type { PopulatedReview, BaseUser } from '../../../types/Types';
 
 interface GuideReviewsProps {
   guideId: string;
