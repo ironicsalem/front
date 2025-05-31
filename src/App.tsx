@@ -35,6 +35,17 @@ interface AuthState {
   isLoading: boolean;
 }
 
+// ScrollToTop component
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+};
+
 // Enhanced Protected route component
 const ProtectedRoute = ({
   children,
@@ -234,6 +245,9 @@ function App() {
   return (
     <Router>
       <div className="flex flex-col min-h-screen">
+        {/* ScrollToTop component - automatically scrolls to top on route changes */}
+        <ScrollToTop />
+        
         {/* Navbar with sticky positioning */}
         <Navbar
           isScrolled={isScrolled}
