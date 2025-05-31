@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Star, MapPin, Clock, Users } from 'lucide-react';
 import Footer from '../components/Footer';
 import Hero from '../components/Hero';
+import GuideCard from '../components/GuideCard';
 import CityService, { City } from '../services/CityService';
 import { Trip, PopulatedGuide } from '../types/Types';
 
@@ -81,24 +82,6 @@ const CityPage: React.FC = () => {
         behavior: 'smooth'
       });
     }
-  };
-
-  const renderStars = (rating: number) => {
-    return (
-      <div className="flex items-center space-x-1">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <div
-            key={star}
-            className={`w-4 h-4 ${
-              star <= rating ? 'text-yellow-400' : 'text-gray-300'
-            }`}
-          >
-            ★
-          </div>
-        ))}
-        <span className="text-sm text-gray-600 ml-1">({rating.toFixed(1)})</span>
-      </div>
-    );
   };
 
   if (loading) {
@@ -206,53 +189,12 @@ const CityPage: React.FC = () => {
                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               >
                 {guides.map((guide: PopulatedGuide) => (
-                  <div 
-                    key={guide._id} 
-                    className="flex-none w-72 bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-amber-200 cursor-pointer group"
-                    onClick={() => handleGuideClick(guide._id)}
-                  >
-                    <div className="p-6">
-                      <div className="flex items-center space-x-4 mb-4">
-                        <img
-                          src={guide.userId.profilePicture || '/NoPic.jpg'}
-                          alt={guide.userId.name}
-                          className="w-16 h-16 rounded-full object-cover border-3 border-amber-100 group-hover:border-amber-300 transition-colors"
-                          onError={handleImageError}
-                        />
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-gray-800 group-hover:text-amber-600 transition-colors">
-                            {guide.userId.name}
-                          </h3>
-                          {renderStars(guide.averageRating || 0)}
-                        </div>
-                      </div>
-                      
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {guide.languages.slice(0, 3).map((lang: string, i: number) => (
-                          <span key={i} className="px-3 py-1 bg-blue-50 text-blue-700 text-sm rounded-full border border-blue-100">
-                            {lang}
-                          </span>
-                        ))}
-                        {guide.languages.length > 3 && (
-                          <span className="px-3 py-1 bg-gray-50 text-gray-600 text-sm rounded-full border border-gray-200">
-                            +{guide.languages.length - 3} more
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="flex items-center text-sm text-gray-500 mb-4">
-                        <MapPin className="w-4 h-4 mr-1" />
-                        <span>{guide.city}</span>
-                      </div>
-                      
-                      <button 
-                        className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white py-2.5 rounded-lg transition-all duration-200 font-medium shadow-md hover:shadow-lg transform group-hover:scale-105"
-                        type="button"
-                      >
-                        View Profile
-                      </button>
-                    </div>
-                  </div>
+                  <GuideCard
+                    key={guide._id}
+                    guide={guide}
+                    onClick={handleGuideClick}
+                    className="flex-none w-80"
+                  />
                 ))}
               </div>
             </div>
