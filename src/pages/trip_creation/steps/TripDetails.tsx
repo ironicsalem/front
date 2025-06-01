@@ -1,6 +1,7 @@
 // TripDetails.tsx
 import React, { useState, useRef } from 'react';
-import { TripData, TripType } from '../CreateTrip';
+import { TripData } from '../CreateTrip';
+import { TripType } from '../../../types/Types';
 import TripService from '../../../services/TripService';
 
 interface TripDetailsProps {
@@ -18,6 +19,46 @@ const TripDetails: React.FC<TripDetailsProps> = ({ tripData, updateTripData }) =
     description?: string;
     image?: string;
   }>({});
+
+  // Jordan cities for the dropdown
+  const cities = [
+    'Amman',
+    'Petra',
+    'Aqaba',
+    'Jerash',
+    'Madaba',
+    'Salt',
+    'Irbid',
+    'Zarqa',
+    'Karak',
+    'Ma\'an',
+    'Tafilah',
+    'Ajloun'
+  ];
+
+  // Helper function to convert internal coordinates to GeoJSON format
+  const convertToGeoJSONCoordinates = (position: { lat?: number; lng?: number }): [number, number] => {
+    if (!position.lat || !position.lng) {
+      return [35.9106, 31.9539]; // Default Jordan coordinates [lng, lat]
+    }
+    return [position.lng, position.lat]; // GeoJSON format: [longitude, latitude]
+  };
+
+  // Helper function to create StartLocation from current trip data
+  const createStartLocationFromPath = () => {
+    if (tripData.path && tripData.path.length > 0 && tripData.path[0].position.lat && tripData.path[0].position.lng) {
+      return {
+        type: 'Point' as const,
+        coordinates: convertToGeoJSONCoordinates(tripData.path[0].position)
+      };
+    }
+    
+    // Default to Jordan coordinates if no path or coordinates
+    return {
+      type: 'Point' as const,
+      coordinates: [35.9106, 31.9539] as [number, number] // Amman, Jordan [lng, lat]
+    };
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     if (e.target.files && e.target.files[0]) {
@@ -72,11 +113,11 @@ const TripDetails: React.FC<TripDetailsProps> = ({ tripData, updateTripData }) =
     }
   };
   
-  const handleCityChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+  const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>): void => {
     const value = e.target.value;
     updateTripData({ city: value });
     
-    // Clear error if city is provided
+    // Clear error if city is selected
     if (value.trim()) {
       setErrors({...errors, city: undefined});
     }
@@ -93,19 +134,16 @@ const TripDetails: React.FC<TripDetailsProps> = ({ tripData, updateTripData }) =
   };
 
   const validateField = (field: 'city' | 'price' | 'type' | 'description', value: string | number): string | undefined => {
-    // Create a minimal trip data object for validation
+    // Create a minimal trip data object for validation using new GeoJSON format
     const validationData = {
-      title: 'temp',
+      title: tripData.title || 'temp',
       city: field === 'city' ? String(value) : tripData.city,
       price: field === 'price' ? Number(value) : tripData.price,
       description: field === 'description' ? String(value) : tripData.description,
-      type: field === 'type' ? String(value) : tripData.type,
-      schedule: [],
-      path: [],
-      startLocation: {
-        type: 'Point' as const,
-        coordinates: [35.8900, 32.2800] as [number, number]
-      }
+      type: field === 'type' ? String(value) as TripType : tripData.type,
+      schedule: tripData.schedule || [],
+      path: tripData.path || [],
+      startLocation: createStartLocationFromPath()
     };
 
     const validationErrors = TripService.validateTripData(validationData);
@@ -141,15 +179,27 @@ const TripDetails: React.FC<TripDetailsProps> = ({ tripData, updateTripData }) =
       
       <div className="mb-6">
         <label className="block text-gray-600 mb-2">City <span className="text-red-500">*</span></label>
-        <input
-          type="text"
-          value={tripData.city}
-          onChange={handleCityChange}
-          onBlur={() => setErrors({...errors, city: validateField('city', tripData.city)})}
-          className={`w-full border ${errors.city ? 'border-red-500' : 'border-gray-300'} rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-300`}
-          placeholder="Enter city name"
-          required
-        />
+        <div className="relative">
+          <select
+            value={tripData.city}
+            onChange={handleCityChange}
+            onBlur={() => setErrors({...errors, city: validateField('city', tripData.city)})}
+            className={`w-full border ${errors.city ? 'border-red-500' : 'border-gray-300'} rounded-md px-4 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-orange-300`}
+            required
+          >
+            <option value="">Select a city</option>
+            {cities.map((city) => (
+              <option key={city} value={city}>
+                {city}
+              </option>
+            ))}
+          </select>
+          <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </div>
+        </div>
         {errors.city && <p className="text-red-500 text-sm mt-1">{errors.city}</p>}
       </div>
       

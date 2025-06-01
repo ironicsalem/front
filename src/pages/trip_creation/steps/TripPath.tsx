@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { TripData, Location } from '../CreateTrip';
+import { TripData } from '../CreateTrip';
+import { Location } from '../../../types/Types';
 import TripService from '../../../services/TripService';
 
 interface TripPathProps {
@@ -15,15 +16,15 @@ const TripPath: React.FC<TripPathProps> = ({ tripData, updateTripData }) => {
   // Ensure path is always an array (defensive programming)
   const path = tripData.path || [];
   
-  // Validate path using TripService
+  // Validate path using TripService with new format
   const validatePath = (pathData: Location[]): string | null => {
     if (pathData.length === 0) {
       return 'At least one location in path is required';
     }
     
-    // Create a minimal trip data object for validation
+    // Create a minimal trip data object for validation using new format
     const validationData = {
-      title: 'temp',
+      title: tripData.title || 'temp',
       city: tripData.city || 'temp',
       price: tripData.price || 1,
       description: tripData.description || 'temp description',
@@ -33,8 +34,8 @@ const TripPath: React.FC<TripPathProps> = ({ tripData, updateTripData }) => {
       startLocation: {
         type: 'Point' as const,
         coordinates: pathData.length > 0 && pathData[0].position.lng && pathData[0].position.lat
-          ? [pathData[0].position.lng, pathData[0].position.lat]
-          : [35.8900, 32.2800] as [number, number]
+          ? [pathData[0].position.lng, pathData[0].position.lat] as [number, number]
+          : [35.9106, 31.9539] as [number, number] // Jordan coordinates [lng, lat]
       }
     };
 
@@ -55,6 +56,7 @@ const TripPath: React.FC<TripPathProps> = ({ tripData, updateTripData }) => {
   };
 
   // Generate random coordinates around Jordan (Amman area)
+  // Returns coordinates in {lat, lng} format for internal use
   const generateJordanCoordinates = (): { lat: number; lng: number } => {
     // Amman coordinates with small random offset for variety
     const baseLatitude = 31.9539; // Amman latitude
@@ -114,7 +116,7 @@ const TripPath: React.FC<TripPathProps> = ({ tripData, updateTripData }) => {
       
       const newLocation: Location = {
         name: newStation.trim(),
-        position: coordinates
+        position: coordinates // Keep internal format as {lat, lng}
       };
       
       const updatedPath = [...path, newLocation];
@@ -185,6 +187,22 @@ const TripPath: React.FC<TripPathProps> = ({ tripData, updateTripData }) => {
     if (path.length === 0) return 'No stations added';
     if (path.length === 1) return `1 station: ${path[0].name}`;
     return `${path.length} stations: ${path.map(p => p.name).join(' → ')}`;
+  };
+
+  // Format coordinates for display (lat, lng format for user readability)
+  const formatCoordinatesForDisplay = (position: { lat?: number; lng?: number }): string => {
+    if (!position.lat || !position.lng) {
+      return 'Coordinates not available';
+    }
+    return `${position.lat.toFixed(4)}, ${position.lng.toFixed(4)}`;
+  };
+
+  // Convert internal coordinates to GeoJSON format for validation/display
+  const convertToGeoJSONCoordinates = (position: { lat?: number; lng?: number }): [number, number] => {
+    if (!position.lat || !position.lng) {
+      return [35.9106, 31.9539]; // Default Jordan coordinates [lng, lat]
+    }
+    return [position.lng, position.lat]; // GeoJSON format: [longitude, latitude]
   };
 
   return (
@@ -271,11 +289,13 @@ const TripPath: React.FC<TripPathProps> = ({ tripData, updateTripData }) => {
                       </div>
                       <div className="flex-1 py-3 px-4 bg-white border border-orange-200 rounded-md shadow-sm">
                         <div className="font-medium text-gray-800">{station.name}</div>
-                        {station.position.lat && station.position.lng && (
-                          <div className="text-xs text-gray-500 mt-1">
-                            {station.position.lat.toFixed(4)}, {station.position.lng.toFixed(4)}
-                          </div>
-                        )}
+                        <div className="text-xs text-gray-500 mt-1">
+                          {formatCoordinatesForDisplay(station.position)}
+                        </div>
+                        {/* Show GeoJSON coordinates for development/debugging */}
+                        <div className="text-xs text-amber-500 mt-1">
+                          GeoJSON: [{convertToGeoJSONCoordinates(station.position).join(', ')}]
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -328,11 +348,12 @@ const TripPath: React.FC<TripPathProps> = ({ tripData, updateTripData }) => {
                     </div>
                     <div className="min-w-0 flex-1">
                       <span className="text-gray-800 font-medium block truncate">{station.name}</span>
-                      {station.position.lat && station.position.lng && (
-                        <span className="text-xs text-gray-500">
-                          {station.position.lat.toFixed(4)}, {station.position.lng.toFixed(4)}
-                        </span>
-                      )}
+                      <span className="text-xs text-gray-500 block">
+                        {formatCoordinatesForDisplay(station.position)}
+                      </span>
+                      <span className="text-xs text-amber-500 block">
+                        GeoJSON: [{convertToGeoJSONCoordinates(station.position).join(', ')}]
+                      </span>
                     </div>
                   </div>
                   
@@ -392,9 +413,9 @@ const TripPath: React.FC<TripPathProps> = ({ tripData, updateTripData }) => {
         </div>
       </div>
       
-      <div className="p-4 bg-blue-50 text-blue-800 rounded-md mt-6">
+      <div className="p-4 bg-amber-50 text-amber-800 rounded-md mt-6">
         <div className="flex items-start gap-3">
-          <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <div>
@@ -404,6 +425,7 @@ const TripPath: React.FC<TripPathProps> = ({ tripData, updateTripData }) => {
               <li>• Use the up/down arrows to rearrange the order</li>
               <li>• Coordinates are automatically generated for each location</li>
               <li>• Station names should be descriptive and unique</li>
+              <li>• GeoJSON coordinates are used internally (longitude, latitude format)</li>
             </ul>
           </div>
         </div>

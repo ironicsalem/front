@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { NavigateFunction } from 'react-router-dom';
 import { BaseUser as User, Trip } from '../../../types/Types';
 import GuideService from '../../../services/GuideService';
+import TripService from '../../../services/TripService';
 import { 
   Plus,
   MapPin,
@@ -14,7 +15,8 @@ import {
   Star,
   Eye,
   TrendingUp,
-  Package
+  Package,
+  AlertTriangle
 } from 'lucide-react';
 
 interface TripsTabProps {
@@ -27,6 +29,17 @@ const TripsTab: React.FC<TripsTabProps> = ({ user, navigate }) => {
   const [loadingTrips, setLoadingTrips] = useState(false);
   const [editingTrip, setEditingTrip] = useState<string | null>(null);
   const [tripEditData, setTripEditData] = useState<{ [key: string]: string }>({});
+  const [updating, setUpdating] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    isOpen: boolean;
+    tripId: string;
+    tripTitle: string;
+  }>({
+    isOpen: false,
+    tripId: '',
+    tripTitle: ''
+  });
 
   const loadTrips = useCallback(async () => {
     setLoadingTrips(true);
@@ -52,31 +65,71 @@ const TripsTab: React.FC<TripsTabProps> = ({ user, navigate }) => {
   };
 
   const handleSaveTripCity = async (tripId: string) => {
+    const newCity = tripEditData[tripId];
+    if (!newCity || newCity.trim() === '') {
+      alert('City cannot be empty');
+      return;
+    }
+
+    setUpdating(tripId);
     try {
-      // This would need to be implemented in GuideService
-      // await GuideService.updateTripCity(tripId, tripEditData[tripId]);
-      console.log('Updating trip city:', tripId, tripEditData[tripId]);
+      await TripService.updateTrip(tripId, { city: newCity.trim() });
       setEditingTrip(null);
-      // Refresh trips
-      loadTrips();
+      setTripEditData(prev => {
+        const newData = { ...prev };
+        delete newData[tripId];
+        return newData;
+      });
+      // Refresh trips to get updated data
+      await loadTrips();
     } catch (error) {
       console.error('Error updating trip city:', error);
-      alert('Failed to update trip city');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update trip city';
+      alert(errorMessage);
+    } finally {
+      setUpdating(null);
     }
   };
 
+  const handleCancelEdit = (tripId: string) => {
+    setEditingTrip(null);
+    setTripEditData(prev => {
+      const newData = { ...prev };
+      delete newData[tripId];
+      return newData;
+    });
+  };
+
   const handleDeleteTrip = async (tripId: string) => {
-    if (window.confirm('Are you sure you want to delete this trip? This action cannot be undone.')) {
-      try {
-        // This would need to be implemented in GuideService
-        // await GuideService.deleteTrip(tripId);
-        console.log('Deleting trip:', tripId);
-        setTrips(prev => prev.filter(trip => trip._id !== tripId));
-      } catch (error) {
-        console.error('Error deleting trip:', error);
-        alert('Failed to delete trip');
-      }
+    const trip = trips.find(t => t._id === tripId);
+    if (!trip) return;
+
+    setDeleteConfirmation({
+      isOpen: true,
+      tripId,
+      tripTitle: trip.title
+    });
+  };
+
+  const confirmDeleteTrip = async () => {
+    const tripId = deleteConfirmation.tripId;
+    setDeleting(tripId);
+    setDeleteConfirmation({ isOpen: false, tripId: '', tripTitle: '' });
+    
+    try {
+      await TripService.deleteTrip(tripId);
+      setTrips(prev => prev.filter(trip => trip._id !== tripId));
+    } catch (error) {
+      console.error('Error deleting trip:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete trip';
+      alert(errorMessage);
+    } finally {
+      setDeleting(null);
     }
+  };
+
+  const cancelDeleteTrip = () => {
+    setDeleteConfirmation({ isOpen: false, tripId: '', tripTitle: '' });
   };
 
   const getTotalRevenue = () => {
@@ -99,7 +152,7 @@ const TripsTab: React.FC<TripsTabProps> = ({ user, navigate }) => {
     const daysSinceCreated = Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
     
     if (daysSinceCreated < 7) return 'bg-green-100 text-green-800 border-green-200';
-    if (daysSinceCreated < 30) return 'bg-blue-100 text-blue-800 border-blue-200';
+    if (daysSinceCreated < 30) return 'bg-amber-100 text-amber-800 border-amber-200';
     return 'bg-gray-100 text-gray-800 border-gray-200';
   };
 
@@ -135,6 +188,47 @@ const TripsTab: React.FC<TripsTabProps> = ({ user, navigate }) => {
 
   return (
     <div className="space-y-8">
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmation.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
+            <div className="flex items-center space-x-4 mb-4">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <AlertTriangle className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Delete Trip</h3>
+                <p className="text-sm text-gray-600">This action cannot be undone</p>
+              </div>
+            </div>
+            
+            <div className="mb-6">
+              <p className="text-gray-700 mb-2">
+                Are you sure you want to delete this trip?
+              </p>
+              <div className="bg-gray-50 rounded-lg p-3 border">
+                <p className="font-semibold text-gray-900">{deleteConfirmation.tripTitle}</p>
+              </div>
+            </div>
+            
+            <div className="flex space-x-3">
+              <button
+                onClick={cancelDeleteTrip}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteTrip}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+              >
+                Delete Trip
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header with Stats */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
         <div>
@@ -156,10 +250,10 @@ const TripsTab: React.FC<TripsTabProps> = ({ user, navigate }) => {
               <div className="text-xs text-green-700">Avg Price</div>
             </div>
           </div>
-          <div className="bg-gradient-to-r from-blue-50 to-cyan-50 px-4 py-3 rounded-xl border border-blue-200">
+          <div className="bg-gradient-to-r from-amber-50 to-cyan-50 px-4 py-3 rounded-xl border border-amber-200">
             <div className="text-center">
-              <div className="text-xl font-bold text-blue-600">{getTotalLocations()}</div>
-              <div className="text-xs text-blue-700">Total Locations</div>
+              <div className="text-xl font-bold text-amber-600">{getTotalLocations()}</div>
+              <div className="text-xs text-amber-700">Total Locations</div>
             </div>
           </div>
         </div>
@@ -219,7 +313,12 @@ const TripsTab: React.FC<TripsTabProps> = ({ user, navigate }) => {
           
           <div className="grid gap-6">
             {trips.map((trip) => (
-              <div key={trip._id} className="group bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-xl transition-all duration-300 hover:border-amber-200">
+              <div 
+                key={trip._id} 
+                className={`group bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-xl transition-all duration-300 hover:border-amber-200 ${
+                  deleting === trip._id ? 'opacity-50 pointer-events-none' : ''
+                }`}
+              >
                 <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
                   <div className="flex-1">
                     <div className="flex items-start justify-between mb-4">
@@ -246,23 +345,31 @@ const TripsTab: React.FC<TripsTabProps> = ({ user, navigate }) => {
                         </div>
                       </div>
                       
-                      <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
-                        <MapPin className="w-5 h-5 text-blue-600" />
+                      <div className="flex items-center space-x-3 p-3 bg-amber-50 rounded-lg border border-amber-100">
+                        <MapPin className="w-5 h-5 text-amber-600" />
                         <div className="flex items-center space-x-2">
                           {editingTrip === trip._id ? (
-                            <input
-                              type="text"
-                              value={tripEditData[trip._id] || trip.city}
-                              onChange={(e) => setTripEditData(prev => ({
-                                ...prev,
-                                [trip._id]: e.target.value
-                              }))}
-                              className="w-20 px-2 py-1 border border-blue-300 rounded text-sm font-bold bg-white"
-                            />
+                            <div className="flex flex-col">
+                              <input
+                                type="text"
+                                value={tripEditData[trip._id] || trip.city}
+                                onChange={(e) => setTripEditData(prev => ({
+                                  ...prev,
+                                  [trip._id]: e.target.value
+                                }))}
+                                className="w-20 px-2 py-1 border border-amber-300 rounded text-sm font-bold bg-white"
+                                disabled={updating === trip._id}
+                              />
+                              {updating === trip._id && (
+                                <div className="text-xs text-amber-500 mt-1">Saving...</div>
+                              )}
+                            </div>
                           ) : (
-                            <div className="font-bold text-blue-700">{trip.city}</div>
+                            <div>
+                              <div className="font-bold text-amber-700">{trip.city}</div>
+                              <div className="text-xs text-amber-600">City</div>
+                            </div>
                           )}
-                          <div className="text-xs text-blue-600">City</div>
                         </div>
                       </div>
                       
@@ -290,7 +397,7 @@ const TripsTab: React.FC<TripsTabProps> = ({ user, navigate }) => {
                         <span className="font-semibold">4.8</span>
                         <span className="text-gray-500">rating</span>
                       </div>
-                      <div className="flex items-center space-x-2 text-blue-600">
+                      <div className="flex items-center space-x-2 text-amber-600">
                         <Eye className="w-4 h-4" />
                         <span className="font-semibold">247</span>
                         <span className="text-gray-500">views</span>
@@ -312,14 +419,20 @@ const TripsTab: React.FC<TripsTabProps> = ({ user, navigate }) => {
                       <>
                         <button
                           onClick={() => handleSaveTripCity(trip._id)}
-                          className="flex items-center justify-center w-10 h-10 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-all duration-200"
+                          disabled={updating === trip._id}
+                          className={`flex items-center justify-center w-10 h-10 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-all duration-200 ${
+                            updating === trip._id ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
                           title="Save changes"
                         >
                           <Save className="w-5 h-5" />
                         </button>
                         <button
-                          onClick={() => setEditingTrip(null)}
-                          className="flex items-center justify-center w-10 h-10 text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-all duration-200"
+                          onClick={() => handleCancelEdit(trip._id)}
+                          disabled={updating === trip._id}
+                          className={`flex items-center justify-center w-10 h-10 text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-all duration-200 ${
+                            updating === trip._id ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
                           title="Cancel editing"
                         >
                           <X className="w-5 h-5" />
@@ -329,13 +442,15 @@ const TripsTab: React.FC<TripsTabProps> = ({ user, navigate }) => {
                       <>
                         <button
                           onClick={() => handleEditTripCity(trip._id, trip.city)}
-                          className="flex items-center justify-center w-10 h-10 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-200"
+                          disabled={deleting === trip._id}
+                          className="flex items-center justify-center w-10 h-10 text-amber-600 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition-all duration-200"
                           title="Edit city"
                         >
                           <Edit3 className="w-5 h-5" />
                         </button>
                         <button
                           onClick={() => navigate(`/trip/${trip._id}`)}
+                          disabled={deleting === trip._id}
                           className="flex items-center justify-center w-10 h-10 text-amber-600 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition-all duration-200"
                           title="View trip details"
                         >
@@ -343,8 +458,11 @@ const TripsTab: React.FC<TripsTabProps> = ({ user, navigate }) => {
                         </button>
                         <button
                           onClick={() => handleDeleteTrip(trip._id)}
-                          className="flex items-center justify-center w-10 h-10 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100"
-                          title="Delete trip"
+                          disabled={deleting === trip._id}
+                          className={`flex items-center justify-center w-10 h-10 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100 ${
+                            deleting === trip._id ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
+                          title={deleting === trip._id ? "Deleting..." : "Delete trip"}
                         >
                           <Trash2 className="w-5 h-5" />
                         </button>

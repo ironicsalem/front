@@ -3,8 +3,9 @@ import { NavigateFunction } from 'react-router-dom';
 import { BaseUser as User } from '../../types/Types';
 import ProfileTab from './tabs/ProfileTab';
 import SettingsTab from './tabs/SettingsTab';
-import AdminPanel from './tabs/AdminPanel';
+import AdminPanel from './tabs/AdminGuidesApplications';
 import BookingsTab from './tabs/BookingsTab';
+import ManageTrips from './tabs/AdminManageTrips';
 import { 
   User as UserIcon, 
   Shield,
@@ -26,7 +27,7 @@ const AdminView: React.FC<AdminViewProps> = ({
   setUser, 
   navigate 
 }) => {
-  const [activeTab, setActiveTab] = useState<'profile' | 'admin' | 'bookings' | 'settings'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'admin' | 'bookings' | 'trips' | 'settings'>('profile');
 
   const tabs = [
     {
@@ -36,7 +37,12 @@ const AdminView: React.FC<AdminViewProps> = ({
     },
     {
       id: 'admin' as const,
-      label: 'Admin Panel',
+      label: 'Guides Applications',
+      icon: Shield
+    },
+    {
+      id: 'trips' as const,
+      label: 'Manage Trips',
       icon: Shield
     },
     {
@@ -59,6 +65,8 @@ const AdminView: React.FC<AdminViewProps> = ({
         return <AdminPanel navigate={navigate} />;
       case 'bookings':
         return <BookingsTab navigate={navigate} />;
+      case 'trips':
+        return <ManageTrips navigate={navigate} />;
       case 'settings':
         return <SettingsTab user={user} navigate={navigate} />;
       default:

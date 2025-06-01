@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { TripData } from '../CreateTrip';
 import { useNavigate } from 'react-router-dom';
+import { StartLocation } from '../../../types/Types';
 import TripService from '../../../services/TripService';
 
 interface TripConfirmationProps {
@@ -25,11 +26,37 @@ const TripConfirmation: React.FC<TripConfirmationProps> = ({
     schedule: tripData.schedule || [] // Ensure schedule is always an array
   }), [tripData]);
 
+  // Helper function to convert internal coordinates to GeoJSON format
+  const convertToGeoJSONCoordinates = (position: { lat?: number; lng?: number }): [number, number] => {
+    if (!position.lat || !position.lng) {
+      return [35.9106, 31.9539]; // Default Jordan coordinates [lng, lat]
+    }
+    return [position.lng, position.lat]; // GeoJSON format: [longitude, latitude]
+  };
+
+  // Helper function to create StartLocation from path (memoized)
+  const startLocationFromPath = useMemo((): StartLocation => {
+    if (safeTripData.path.length > 0 && safeTripData.path[0].position.lat && safeTripData.path[0].position.lng) {
+      return {
+        type: 'Point',
+        coordinates: convertToGeoJSONCoordinates(safeTripData.path[0].position),
+        description: `Starting at ${safeTripData.path[0].name}`
+      };
+    }
+    
+    // Default to Jordan coordinates if no path or coordinates
+    return {
+      type: 'Point',
+      coordinates: [35.9106, 31.9539], // Amman, Jordan [lng, lat]
+      description: 'Default starting location in Jordan'
+    };
+  }, [safeTripData.path]);
+
   // Validate the entire trip data using TripService
   useEffect(() => {
     const validateTripData = () => {
       try {
-        // Create the validation data structure
+        // Create the validation data structure with new GeoJSON format
         const validationData = {
           title: safeTripData.title || `${safeTripData.city} Trip`,
           city: safeTripData.city,
@@ -38,14 +65,7 @@ const TripConfirmation: React.FC<TripConfirmationProps> = ({
           type: safeTripData.type,
           schedule: safeTripData.schedule,
           path: safeTripData.path,
-          startLocation: {
-            type: 'Point' as const,
-            coordinates: safeTripData.path.length > 0 && 
-                        safeTripData.path[0].position.lng && 
-                        safeTripData.path[0].position.lat
-              ? [safeTripData.path[0].position.lng, safeTripData.path[0].position.lat] as [number, number]
-              : [35.8900, 32.2800] as [number, number]
-          },
+          startLocation: startLocationFromPath,
           image: safeTripData.image || undefined
         };
 
@@ -60,7 +80,7 @@ const TripConfirmation: React.FC<TripConfirmationProps> = ({
     };
 
     validateTripData();
-  }, [safeTripData]);
+  }, [safeTripData, startLocationFromPath]);
 
   // Generate image preview URL if image exists
   const imagePreview = safeTripData.image 
@@ -116,30 +136,34 @@ const TripConfirmation: React.FC<TripConfirmationProps> = ({
     await handleSubmit();
   };
 
-  // Format trip data for display using TripService formatter if needed
-  const formattedTripData = TripService.formatTripForDisplay({
-    _id: 'temp',
-    title: safeTripData.title || `${safeTripData.city} Trip`,
-    guide: 'temp',
-    city: safeTripData.city,
-    price: safeTripData.price,
-    description: safeTripData.description,
-    type: safeTripData.type,
-    schedule: safeTripData.schedule,
-    path: safeTripData.path,
-    startLocation: {
-      type: 'Point',
-      coordinates: safeTripData.path.length > 0 && 
-                  safeTripData.path[0].position.lng && 
-                  safeTripData.path[0].position.lat
-        ? [safeTripData.path[0].position.lng, safeTripData.path[0].position.lat]
-        : [35.8900, 32.2800]
-    },
-    isAvailable: true,
-    imageUrl: imagePreview || undefined,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  });
+  // Format coordinates for display using new GeoJSON format
+  const formatCoordinatesForDisplay = (startLocation: StartLocation): string => {
+    const [lng, lat] = startLocation.coordinates;
+    return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+  };
+
+  // Create a mock trip object for display formatting
+  const createMockTripForDisplay = () => {
+    return {
+      _id: 'temp',
+      title: safeTripData.title || `${safeTripData.city} Trip`,
+      guide: { _id: 'temp-guide', city: 'temp', userId: 'temp', ratings: [], averageRating: 0, reviews: [], plannedTrips: [], languages: [], behavioralCertificate: '', nationalId: '', createdAt: new Date(), updatedAt: new Date() }, // Properly typed guide object
+      city: safeTripData.city,
+      price: safeTripData.price,
+      description: safeTripData.description,
+      type: safeTripData.type,
+      schedule: safeTripData.schedule,
+      path: safeTripData.path,
+      startLocation: startLocationFromPath,
+      isAvailable: true,
+      imageUrl: imagePreview || undefined,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+  };
+
+  // Format trip data for display using TripService formatter
+  const formattedTripData = TripService.formatTripForDisplay(createMockTripForDisplay());
 
   return (
     <div>
@@ -277,10 +301,12 @@ const TripConfirmation: React.FC<TripConfirmationProps> = ({
                       <div className="font-medium text-gray-800">{location.name}</div>
                       {location.position.lat && location.position.lng && (
                         <div className="text-xs text-gray-500">
-                          {TripService.formatCoordinates({
-                            type: 'Point',
-                            coordinates: [location.position.lng, location.position.lat]
-                          })}
+                          Display: {location.position.lat.toFixed(4)}, {location.position.lng.toFixed(4)}
+                        </div>
+                      )}
+                      {location.position.lat && location.position.lng && (
+                        <div className="text-xs text-blue-500">
+                          GeoJSON: [{convertToGeoJSONCoordinates(location.position).join(', ')}]
                         </div>
                       )}
                     </div>
@@ -300,7 +326,7 @@ const TripConfirmation: React.FC<TripConfirmationProps> = ({
           )}
         </div>
 
-        {/* Start Location Info */}
+        {/* Start Location Info with new GeoJSON format */}
         {safeTripData.path.length > 0 && safeTripData.path[0].position.lat && safeTripData.path[0].position.lng && (
           <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
             <h5 className="font-medium text-blue-800 mb-2">Trip Start Location</h5>
@@ -308,11 +334,16 @@ const TripConfirmation: React.FC<TripConfirmationProps> = ({
               Your trip will start at <strong>{safeTripData.path[0].name}</strong>
             </p>
             <p className="text-blue-600 text-xs mt-1">
-              Coordinates: {TripService.formatCoordinates({
-                type: 'Point',
-                coordinates: [safeTripData.path[0].position.lng, safeTripData.path[0].position.lat]
-              })}
+              Display Coordinates: {safeTripData.path[0].position.lat?.toFixed(4)}, {safeTripData.path[0].position.lng?.toFixed(4)}
             </p>
+            <p className="text-blue-600 text-xs mt-1">
+              GeoJSON Coordinates: {formatCoordinatesForDisplay(startLocationFromPath)}
+            </p>
+            {startLocationFromPath.description && (
+              <p className="text-blue-600 text-xs mt-1">
+                Description: {startLocationFromPath.description}
+              </p>
+            )}
           </div>
         )}
         

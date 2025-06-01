@@ -1,6 +1,7 @@
 // TripSchedule.tsx
 import React, { useState } from 'react';
 import { TripData, Schedule } from '../CreateTrip';
+import { TripType } from '../../../types/Types';
 import TripService from '../../../services/TripService';
 
 interface TripScheduleProps {
@@ -31,26 +32,47 @@ const TripSchedule: React.FC<TripScheduleProps> = ({ tripData, updateTripData })
   // Generate years array (current year + 5 years into the future)
   const currentYear = today.getFullYear();
   const years = Array.from({ length: 6 }, (_, i) => currentYear + i);
+
+  // Helper function to convert internal coordinates to GeoJSON format
+  const convertToGeoJSONCoordinates = (position: { lat?: number; lng?: number }): [number, number] => {
+    if (!position.lat || !position.lng) {
+      return [35.9106, 31.9539]; // Default Jordan coordinates [lng, lat]
+    }
+    return [position.lng, position.lat]; // GeoJSON format: [longitude, latitude]
+  };
+
+  // Helper function to create StartLocation from current trip data
+  const createStartLocationFromPath = () => {
+    if (tripData.path && tripData.path.length > 0 && tripData.path[0].position.lat && tripData.path[0].position.lng) {
+      return {
+        type: 'Point' as const,
+        coordinates: convertToGeoJSONCoordinates(tripData.path[0].position)
+      };
+    }
+    
+    // Default to Jordan coordinates if no path or coordinates
+    return {
+      type: 'Point' as const,
+      coordinates: [35.9106, 31.9539] as [number, number] // Amman, Jordan [lng, lat]
+    };
+  };
   
-  // Validate schedule using TripService
+  // Validate schedule using TripService with new GeoJSON format
   const validateSchedule = (schedule: Schedule[]): string | null => {
     if (schedule.length === 0) {
       return 'At least one schedule item is required';
     }
     
-    // Create a minimal trip data object for validation
+    // Create a minimal trip data object for validation using new GeoJSON format
     const validationData = {
-      title: 'temp',
+      title: tripData.title || 'temp',
       city: tripData.city || 'temp',
       price: tripData.price || 1,
       description: tripData.description || 'temp description',
-      type: tripData.type || 'Cultural',
+      type: tripData.type || 'Cultural' as TripType,
       schedule: schedule,
       path: tripData.path || [],
-      startLocation: {
-        type: 'Point' as const,
-        coordinates: [35.8900, 32.2800] as [number, number]
-      }
+      startLocation: createStartLocationFromPath()
     };
 
     const validationErrors = TripService.validateTripData(validationData);

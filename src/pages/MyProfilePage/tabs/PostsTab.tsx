@@ -299,7 +299,7 @@ const PostsTab: React.FC<PostsTabProps> = ({ user, posts, setPosts }) => {
                         <span className="font-semibold">{post.likeCount || 0}</span>
                         <span className="text-gray-500">likes</span>
                       </div>
-                      <div className="flex items-center space-x-2 text-blue-500">
+                      <div className="flex items-center space-x-2 text-amber-500">
                         <MessageCircle className="w-4 h-4" />
                         <span className="font-semibold">0</span>
                         <span className="text-gray-500">comments</span>

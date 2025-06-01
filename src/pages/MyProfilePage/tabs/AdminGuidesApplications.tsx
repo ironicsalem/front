@@ -156,7 +156,7 @@ const AdminPanel: React.FC<AdminPanelProps> = () => {
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-gray-900 flex items-center">
           <Shield className="w-6 h-6 mr-3 text-red-500" />
-          Administrator Panel - Guide Applications
+          Guide Applications
         </h2>
       </div>
 
@@ -204,7 +204,7 @@ const AdminPanel: React.FC<AdminPanelProps> = () => {
               placeholder="Search by name, email, city, or national ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
             />
           </div>
           
@@ -214,7 +214,7 @@ const AdminPanel: React.FC<AdminPanelProps> = () => {
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value as 'all' | 'pending' | 'approved' | 'rejected')}
-                className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
               >
                 <option value="all">All Status</option>
                 <option value="pending">Pending</option>
@@ -239,7 +239,7 @@ const AdminPanel: React.FC<AdminPanelProps> = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         {loading ? (
           <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600 mx-auto mb-4"></div>
             <p className="text-gray-600">Loading applications...</p>
           </div>
         ) : filteredApplications.length === 0 ? (
@@ -285,8 +285,8 @@ const AdminPanel: React.FC<AdminPanelProps> = () => {
                     <tr key={application._id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                            <User className="w-5 h-5 text-blue-600" />
+                          <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                            <User className="w-5 h-5 text-amber-600" />
                           </div>
                           <div className="ml-4">
                             <div className="text-sm font-medium text-gray-900">
@@ -330,7 +330,7 @@ const AdminPanel: React.FC<AdminPanelProps> = () => {
                         <div className="flex items-center space-x-2">
                           <button
                             onClick={() => setSelectedApplication(application)}
-                            className="text-blue-600 hover:text-blue-900 flex items-center space-x-1"
+                            className="text-amber-600 hover:text-amber-900 flex items-center space-x-1"
                           >
                             <Eye className="w-4 h-4" />
                             <span>View</span>
@@ -375,7 +375,7 @@ const AdminPanel: React.FC<AdminPanelProps> = () => {
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <UserCheck className="w-6 h-6 text-blue-600" />
+                  <UserCheck className="w-6 h-6 text-amber-600" />
                   <h2 className="text-xl font-semibold text-gray-900">Application Details</h2>
                 </div>
                 <button
@@ -431,7 +431,7 @@ const AdminPanel: React.FC<AdminPanelProps> = () => {
                       <label className="block text-sm font-medium text-gray-700">Languages</label>
                       <div className="flex flex-wrap gap-2 mt-1">
                         {selectedApplication.languages.map((lang, index) => (
-                          <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                          <span key={index} className="px-2 py-1 bg-amber-100 text-amber-800 text-xs rounded-full">
                             {lang}
                           </span>
                         ))}
@@ -483,7 +483,7 @@ const AdminPanel: React.FC<AdminPanelProps> = () => {
                       href={selectedApplication.behavioralCertificate}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-700 flex items-center space-x-2"
+                      className="text-amber-600 hover:text-amber-700 flex items-center space-x-2"
                     >
                       <Download className="w-4 h-4" />
                       <span>View Document</span>
@@ -496,7 +496,7 @@ const AdminPanel: React.FC<AdminPanelProps> = () => {
                       href={selectedApplication.nationalIdPicture}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-700 flex items-center space-x-2"
+                      className="text-amber-600 hover:text-amber-700 flex items-center space-x-2"
                     >
                       <Download className="w-4 h-4" />
                       <span>View Document</span>

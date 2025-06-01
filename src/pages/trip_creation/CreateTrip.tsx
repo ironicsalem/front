@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import TripService, { CreateTripData } from '../../services/TripService';
+import { TripType, Location } from '../../types/Types';
 
 // Import step components
 import TripDetails from './steps/TripDetails';
@@ -10,18 +11,11 @@ import TripSchedule from './steps/TripSchedule';
 import TripPath from './steps/TripPath';
 import TripConfirmation from './steps/TripConfirmation';
 
-// Types
-export type TripType = 'Adventure' | 'Cultural' | 'Food' | 'Historical' | 'Nature' | 'Relaxation' | 'Group';
-
+// Local types for CreateTrip component
 export interface Schedule {
   date: Date;
   time: string;
   isAvailable: boolean;
-}
-
-export interface Location {
-  name: string;
-  position: { lat?: number; lng?: number };
 }
 
 export interface TripData {
@@ -133,32 +127,62 @@ const CreateTrip: React.FC = () => {
     setTripData(prevData => ({ ...prevData, ...data }));
   };
 
+  // Helper function to convert internal coordinates to GeoJSON format
+  const convertToGeoJSONCoordinates = (position: { lat?: number; lng?: number }): [number, number] => {
+    if (!position.lat || !position.lng) {
+      return [35.9106, 31.9539]; // Default Jordan coordinates [lng, lat]
+    }
+    return [position.lng, position.lat]; // GeoJSON format: [longitude, latitude]
+  };
+
+  // Helper function to create StartLocation from path
+  const createStartLocationFromPath = (): {
+    type: 'Point';
+    coordinates: [number, number];
+    description?: string;
+  } => {
+    if (tripData.path.length > 0 && tripData.path[0].position.lat && tripData.path[0].position.lng) {
+      return {
+        type: 'Point',
+        coordinates: convertToGeoJSONCoordinates(tripData.path[0].position),
+        description: `Starting at ${tripData.path[0].name}`
+      };
+    }
+    
+    // Default to Jordan coordinates if no path or coordinates
+    return {
+      type: 'Point',
+      coordinates: [35.9106, 31.9539], // Amman, Jordan [lng, lat]
+      description: 'Default starting location in Jordan'
+    };
+  };
+
   // Validate current step data using TripService validation
   const validateStep = (stepNumber: number): boolean => {
     let isValid = true;
     
     switch (stepNumber) {
       case 1: {
-        const detailsErrors = TripService.validateTripData({
-          title: tripData.title,
+        // Validate trip details step
+        const detailsData = {
+          title: tripData.title || `${tripData.city} Trip`,
           city: tripData.city,
           price: tripData.price,
           description: tripData.description,
           type: tripData.type,
           schedule: [],
           path: [],
-          startLocation: {
-            type: 'Point',
-            coordinates: [35.8900, 32.2800] // Default Jordan coordinates
-          }
-        });
+          startLocation: createStartLocationFromPath()
+        };
+        
+        const detailsErrors = TripService.validateTripData(detailsData);
         
         // Filter validation errors for step 1 fields
         const step1Errors = detailsErrors.filter(error => 
-          error.includes('City') || 
-          error.includes('Price') || 
-          error.includes('Description') || 
-          error.includes('Type')
+          error.toLowerCase().includes('city') || 
+          error.toLowerCase().includes('price') || 
+          error.toLowerCase().includes('description') || 
+          error.toLowerCase().includes('type')
         );
         
         if (step1Errors.length > 0) {
@@ -168,15 +192,50 @@ const CreateTrip: React.FC = () => {
         break;
       }
       case 2: {
-        if (tripData.schedule.length === 0) {
-          toast.error('Please add at least one schedule time');
+        // Validate schedule step
+        const scheduleData = {
+          title: tripData.title || `${tripData.city} Trip`,
+          city: tripData.city || 'temp',
+          price: tripData.price || 1,
+          description: tripData.description || 'temp description',
+          type: tripData.type || 'Cultural',
+          schedule: tripData.schedule,
+          path: tripData.path,
+          startLocation: createStartLocationFromPath()
+        };
+        
+        const scheduleErrors = TripService.validateTripData(scheduleData);
+        const scheduleError = scheduleErrors.find(error => 
+          error.toLowerCase().includes('schedule')
+        );
+        
+        if (scheduleError || tripData.schedule.length === 0) {
+          toast.error(scheduleError || 'Please add at least one schedule time');
           isValid = false;
         }
         break;
       }
       case 3: {
-        if (tripData.path.length === 0) {
-          toast.error('Please add at least one location to your trip path');
+        // Validate path step
+        const pathData = {
+          title: tripData.title || `${tripData.city} Trip`,
+          city: tripData.city || 'temp',
+          price: tripData.price || 1,
+          description: tripData.description || 'temp description',
+          type: tripData.type || 'Cultural',
+          schedule: tripData.schedule,
+          path: tripData.path,
+          startLocation: createStartLocationFromPath()
+        };
+        
+        const pathErrors = TripService.validateTripData(pathData);
+        const pathError = pathErrors.find(error => 
+          error.toLowerCase().includes('path') || 
+          error.toLowerCase().includes('location')
+        );
+        
+        if (pathError || tripData.path.length === 0) {
+          toast.error(pathError || 'Please add at least one location to your trip path');
           isValid = false;
         }
         break;
@@ -234,7 +293,7 @@ const CreateTrip: React.FC = () => {
     }
   };
 
-  // Submit function using TripService
+  // Submit function using TripService with new GeoJSON format
   const handleSubmit = async (): Promise<void> => {
     try {
       setLoading(true);
@@ -249,6 +308,9 @@ const CreateTrip: React.FC = () => {
       // Set title if not provided
       const finalTitle = tripData.title.trim() || `${tripData.city} Trip`;
       
+      // Create the StartLocation in GeoJSON format
+      const startLocation = createStartLocationFromPath();
+      
       // Convert the TripData to CreateTripData format expected by TripService
       const createTripData: CreateTripData = {
         title: finalTitle,
@@ -258,13 +320,7 @@ const CreateTrip: React.FC = () => {
         type: tripData.type,
         schedule: tripData.schedule,
         path: tripData.path,
-        startLocation: {
-          type: 'Point',
-          coordinates: tripData.path.length > 0 && tripData.path[0].position.lng && tripData.path[0].position.lat
-            ? [tripData.path[0].position.lng, tripData.path[0].position.lat]
-            : [35.8900, 32.2800], // Default to Jordan coordinates if no path or coordinates
-          description: tripData.path.length > 0 ? `Starting at ${tripData.path[0].name}` : undefined
-        },
+        startLocation: startLocation,
         image: tripData.image || undefined
       };
       
@@ -276,10 +332,21 @@ const CreateTrip: React.FC = () => {
         return;
       }
       
+      console.log('Creating trip with data:', {
+        ...createTripData,
+        startLocation: startLocation,
+        pathCount: createTripData.path.length,
+        scheduleCount: createTripData.schedule.length
+      });
+      
       // Create the trip using TripService
       const createdTrip = await TripService.createTrip(createTripData);
       
-      console.log('Trip created successfully:', createdTrip);
+      console.log('Trip created successfully:', {
+        id: createdTrip._id,
+        title: createdTrip.title,
+        startLocation: createdTrip.startLocation
+      });
       
       // Update the local tripData title if it was auto-generated
       if (!tripData.title.trim()) {

@@ -204,10 +204,10 @@ const BookingsTab: React.FC<BookingsTabProps> = ({ navigate }) => {
         
         {/* Quick Stats */}
         <div className="flex gap-4">
-          <div className="bg-gradient-to-r from-blue-50 to-cyan-50 px-4 py-3 rounded-xl border border-blue-200">
+          <div className="bg-gradient-to-r from-amber-50 to-cyan-50 px-4 py-3 rounded-xl border border-amber-200">
             <div className="text-center">
-              <div className="text-xl font-bold text-blue-600">{stats.total}</div>
-              <div className="text-xs text-blue-700">Total Bookings</div>
+              <div className="text-xl font-bold text-amber-600">{stats.total}</div>
+              <div className="text-xs text-amber-700">Total Bookings</div>
             </div>
           </div>
           <div className="bg-gradient-to-r from-green-50 to-emerald-50 px-4 py-3 rounded-xl border border-green-200">
@@ -311,7 +311,7 @@ const BookingsTab: React.FC<BookingsTabProps> = ({ navigate }) => {
                               {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
                             </span>
                             {isUpcoming(booking.scheduledDate) && booking.status === 'confirmed' && (
-                              <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full border border-blue-200">
+                              <span className="px-2 py-1 bg-amber-100 text-amber-800 text-xs font-medium rounded-full border border-amber-200">
                                 Upcoming
                               </span>
                             )}
@@ -324,11 +324,11 @@ const BookingsTab: React.FC<BookingsTabProps> = ({ navigate }) => {
                       
                       {/* Booking Details Grid */}
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-                        <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
-                          <Calendar className="w-5 h-5 text-blue-600" />
+                        <div className="flex items-center space-x-3 p-3 bg-amber-50 rounded-lg border border-amber-100">
+                          <Calendar className="w-5 h-5 text-amber-600" />
                           <div>
-                            <div className="font-bold text-blue-700 text-sm">{formatDate(booking.scheduledDate)}</div>
-                            <div className="text-xs text-blue-600">Date</div>
+                            <div className="font-bold text-amber-700 text-sm">{formatDate(booking.scheduledDate)}</div>
+                            <div className="text-xs text-amber-600">Date</div>
                           </div>
                         </div>
                         
