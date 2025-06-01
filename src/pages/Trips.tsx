@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, Calendar, Search, Filter, X, Clock } from 'lucide-react';
-import TripService, { Trip, TripsResponse } from '../services/TripService';
+import TripService, { TripsResponse } from '../services/TripService';
+import { Trip, TripType } from '../types/Types';
 
 // Filter Options
 type FilterOptions = {
@@ -21,8 +22,8 @@ const INITIAL_FILTERS: FilterOptions = {
   sortBy: 'newest'
 };
 
-// Trip Types for filtering
-const TRIP_TYPES = ['Adventure', 'Cultural', 'Food', 'Historical', 'Nature', 'Relaxation'];
+// Trip Types for filtering - using the TripType from Types.ts
+const TRIP_TYPES: TripType[] = ['Adventure', 'Cultural', 'Food', 'Historical', 'Nature', 'Relaxation', 'Group'];
 
 // Popular Cities
 const POPULAR_CITIES = [
@@ -181,8 +182,8 @@ const Trips: React.FC = () => {
     });
   };
 
-  // Get next available date
-  const getNextAvailableDate = (schedules: { date: string | Date; time: string; isAvailable: boolean }[]) => {
+  // Get next available date - Updated to match TripSchedule interface
+  const getNextAvailableDate = (schedules: Trip['schedule']) => {
     const availableSchedules = schedules?.filter(s => s.isAvailable) || [];
     if (availableSchedules.length === 0) return 'No dates available';
     
