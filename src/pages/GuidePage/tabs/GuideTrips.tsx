@@ -11,7 +11,7 @@ import {
   Tag
 } from 'lucide-react';
 import { CenteredSpinner } from '../shared/LoadingSpinner';
-import type { Trip } from '../../../services/TripService';
+import type { Trip } from '../../../types/Types';
 
 interface GuideTripsProps {
   trips: Trip[];

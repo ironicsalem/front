@@ -1,21 +1,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { NavigateFunction } from 'react-router-dom';
-import BookingService, { Booking } from '../../../services/BookingService';
+import BookingService from '../../../services/BookingService';
+import GuideService from '../../../services/GuideService';
+import { PopulatedBooking, Guide } from '../../../types/Types';
 import { 
   Calendar,
   Clock,
-  User as UserIcon,
   DollarSign,
-  Phone,
-  Mail,
   CheckCircle,
   XCircle,
   AlertCircle,
-  Eye,
   RefreshCw,
   Filter,
   Package,
-  TrendingUp
+  TrendingUp,
 } from 'lucide-react';
 
 interface BookingsTabProps {
@@ -23,10 +21,14 @@ interface BookingsTabProps {
 }
 
 const BookingsTab: React.FC<BookingsTabProps> = ({ navigate }) => {
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [bookings, setBookings] = useState<PopulatedBooking[]>([]);
+  const [guides, setGuides] = useState<{ [key: string]: Guide }>({});
   const [loading, setLoading] = useState(false);
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'confirmed' | 'canceled'>('all');
   const [refreshing, setRefreshing] = useState(false);
+  const [loadingGuides, setLoadingGuides] = useState<{ [key: string]: boolean }>({});
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [bookingToCancel, setBookingToCancel] = useState<string | null>(null);
 
   const loadBookings = useCallback(async () => {
     setLoading(true);
@@ -41,6 +43,20 @@ const BookingsTab: React.FC<BookingsTabProps> = ({ navigate }) => {
     }
   }, []);
 
+  const loadGuideInfo = useCallback(async (guideId: string) => {
+    if (guides[guideId] || loadingGuides[guideId]) return;
+
+    setLoadingGuides(prev => ({ ...prev, [guideId]: true }));
+    try {
+      const guideInfo = await GuideService.getGuide(guideId);
+      setGuides(prev => ({ ...prev, [guideId]: guideInfo }));
+    } catch (error) {
+      console.error('Error loading guide info:', error);
+    } finally {
+      setLoadingGuides(prev => ({ ...prev, [guideId]: false }));
+    }
+  }, [guides, loadingGuides]);
+
   const refreshBookings = async () => {
     setRefreshing(true);
     try {
@@ -54,22 +70,38 @@ const BookingsTab: React.FC<BookingsTabProps> = ({ navigate }) => {
     loadBookings();
   }, [loadBookings]);
 
-  const handleCancelBooking = async (bookingId: string) => {
-    if (window.confirm('Are you sure you want to cancel this booking?')) {
-      try {
-        await BookingService.cancelBooking(bookingId);
-        setBookings(prev => 
-          prev.map(booking => 
-            booking._id === bookingId 
-              ? { ...booking, status: 'canceled' }
-              : booking
-          )
-        );
-      } catch (error) {
-        console.error('Error canceling booking:', error);
-        alert('Failed to cancel booking. Please try again.');
+  // Load guide info for each booking
+  useEffect(() => {
+    bookings.forEach(booking => {
+      if (booking.trip?.guide?._id) {
+        loadGuideInfo(booking.trip.guide._id);
       }
+    });
+  }, [bookings, loadGuideInfo]);
+
+  const handleCancelBooking = async (bookingId: string) => {
+    setBookingToCancel(bookingId);
+    setShowCancelDialog(true);
+  };
+
+  const confirmCancelBooking = async () => {
+    if (!bookingToCancel) return;
+    
+    try {
+      await BookingService.deleteBooking(bookingToCancel);
+      setBookings(prev => prev.filter(booking => booking._id !== bookingToCancel));
+    } catch (error) {
+      console.error('Error canceling booking:', error);
+      alert('Failed to cancel booking. Please try again.');
+    } finally {
+      setShowCancelDialog(false);
+      setBookingToCancel(null);
     }
+  };
+
+  const cancelCancelBooking = () => {
+    setShowCancelDialog(false);
+    setBookingToCancel(null);
   };
 
   const getStatusColor = (status: string) => {
@@ -263,132 +295,127 @@ const BookingsTab: React.FC<BookingsTabProps> = ({ navigate }) => {
           </div>
           
           <div className="grid gap-6">
-            {filteredBookings.map((booking) => (
-              <div key={booking._id} className="group bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-xl transition-all duration-300 hover:border-amber-200">
-                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-xl font-bold text-gray-900 group-hover:text-amber-600 transition-colors">
-                            {booking.trip?.title || 'Trip Details Unavailable'}
-                          </h3>
-                          <span className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(booking.status)}`}>
-                            {getStatusIcon(booking.status)}
-                            {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                          </span>
-                          {isUpcoming(booking.scheduledDate) && booking.status === 'confirmed' && (
-                            <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full border border-blue-200">
-                              Upcoming
+            {filteredBookings.map((booking) => {
+              return (
+                <div key={booking._id} className="group bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-xl transition-all duration-300 hover:border-amber-200">
+                  <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="text-xl font-bold text-gray-900 group-hover:text-amber-600 transition-colors">
+                              {booking.trip?.title || 'Trip Details Unavailable'}
+                            </h3>
+                            <span className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(booking.status)}`}>
+                              {getStatusIcon(booking.status)}
+                              {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
                             </span>
-                          )}
-                        </div>
-                        <p className="text-gray-700 mb-4 leading-relaxed">
-                          {booking.trip?.description || 'No description available'}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    {/* Booking Details Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-                      <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
-                        <Calendar className="w-5 h-5 text-blue-600" />
-                        <div>
-                          <div className="font-bold text-blue-700 text-sm">{formatDate(booking.scheduledDate)}</div>
-                          <div className="text-xs text-blue-600">Date</div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg border border-purple-100">
-                        <Clock className="w-5 h-5 text-purple-600" />
-                        <div>
-                          <div className="font-bold text-purple-700">{formatTime(booking.scheduledTime)}</div>
-                          <div className="text-xs text-purple-600">Time</div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg border border-green-100">
-                        <DollarSign className="w-5 h-5 text-green-600" />
-                        <div>
-                          <div className="font-bold text-green-700">${booking.trip?.price || 0}</div>
-                          <div className="text-xs text-green-600">Price</div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-3 p-3 bg-amber-50 rounded-lg border border-amber-100">
-                        <UserIcon className="w-5 h-5 text-amber-600" />
-                        <div>
-                          <div className="font-bold text-amber-700">{booking.trip?.guide?.fullName || 'Unknown Guide'}</div>
-                          <div className="text-xs text-amber-600">Guide</div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
-                        <Clock className="w-5 h-5 text-gray-600" />
-                        <div>
-                          <div className="font-bold text-gray-700">{booking.trip?.duration || 0} days</div>
-                          <div className="text-xs text-gray-600">Duration</div>
-                        </div>
-                      </div>
-
-                      {/* Contact Information */}
-                      {(booking.contactPhone || booking.contactEmail) && (
-                        <div className="md:col-span-2 lg:col-span-1">
-                          <div className="space-y-2">
-                            {booking.contactPhone && booking.contactPhone.trim() && (
-                              <div className="flex items-center space-x-2 text-sm">
-                                <Phone className="w-4 h-4 text-gray-500" />
-                                <span className="text-gray-700">{booking.contactPhone}</span>
-                              </div>
-                            )}
-                            {booking.contactEmail && booking.contactEmail.trim() && (
-                              <div className="flex items-center space-x-2 text-sm">
-                                <Mail className="w-4 h-4 text-gray-500" />
-                                <span className="text-gray-700">{booking.contactEmail}</span>
-                              </div>
+                            {isUpcoming(booking.scheduledDate) && booking.status === 'confirmed' && (
+                              <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full border border-blue-200">
+                                Upcoming
+                              </span>
                             )}
                           </div>
+                          <p className="text-gray-700 mb-4 leading-relaxed">
+                            {booking.trip?.description || 'No description available'}
+                          </p>
                         </div>
-                      )}
-                    </div>
+                      </div>
+                      
+                      {/* Booking Details Grid */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                        <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                          <Calendar className="w-5 h-5 text-blue-600" />
+                          <div>
+                            <div className="font-bold text-blue-700 text-sm">{formatDate(booking.scheduledDate)}</div>
+                            <div className="text-xs text-blue-600">Date</div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg border border-purple-100">
+                          <Clock className="w-5 h-5 text-purple-600" />
+                          <div>
+                            <div className="font-bold text-purple-700">{formatTime(booking.scheduledTime)}</div>
+                            <div className="text-xs text-purple-600">Time</div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg border border-green-100">
+                          <DollarSign className="w-5 h-5 text-green-600" />
+                          <div>
+                            <div className="font-bold text-green-700">${booking.trip?.price || 0}</div>
+                            <div className="text-xs text-green-600">Price</div>
+                          </div>
+                        </div>
+                      </div>
 
-                    {/* Booking Metadata */}
-                    <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500 bg-gray-50 rounded-lg p-3 border border-gray-100">
-                      <span>Booking ID: {booking._id.slice(-8)}</span>
-                      <span>•</span>
-                      <span>Created: {formatDate(booking.createdAt)}</span>
-                      {booking.updatedAt !== booking.createdAt && (
-                        <>
-                          <span>•</span>
-                          <span>Updated: {formatDate(booking.updatedAt)}</span>
-                        </>
-                      )}
+                      {/* Booking Metadata */}
+                      <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500 bg-gray-50 rounded-lg p-3 border border-gray-100">
+                        <span>Booking ID: {booking._id.slice(-8)}</span>
+                        <span>•</span>
+                        <span>Created: {formatDate(booking.createdAt)}</span>
+                        {booking.updatedAt !== booking.createdAt && (
+                          <>
+                            <span>•</span>
+                            <span>Updated: {formatDate(booking.updatedAt)}</span>
+                          </>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  
-                  {/* Action Buttons */}
-                  <div className="flex items-center space-x-2 lg:flex-col lg:space-x-0 lg:space-y-2">
-                    <button
-                      onClick={() => navigate(`/trip/${booking.trip?._id}`)}
-                      className="flex items-center justify-center w-10 h-10 text-amber-600 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition-all duration-200"
-                      title="View trip details"
-                    >
-                      <Eye className="w-5 h-5" />
-                    </button>
                     
-                    {booking.status === 'pending' && (
+                    {/* Action Buttons */}
+                    <div className="flex items-center space-x-3 lg:flex-col lg:space-x-0 lg:space-y-3">
+                      <button
+                        onClick={() => navigate(`/trip/${booking.trip?._id}`)}
+                        className="px-3 py-2 text-sm font-medium text-amber-600 bg-amber-50 hover:bg-amber-100 border border-amber-200 hover:border-amber-300 rounded-lg transition-all duration-200"
+                        title="View trip details"
+                      >
+                        View Trip
+                      </button>
+                      
                       <button
                         onClick={() => handleCancelBooking(booking._id)}
-                        className="flex items-center justify-center w-10 h-10 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all duration-200"
+                        className="px-3 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 hover:border-red-300 rounded-lg transition-all duration-200"
                         title="Cancel booking"
                       >
-                        <XCircle className="w-5 h-5" />
+                        Cancel
                       </button>
-                    )}
+                    </div>
                   </div>
                 </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Confirmation Dialog */}
+      {showCancelDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+            <div className="text-center">
+              <div className="w-12 h-12 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+                <XCircle className="w-6 h-6 text-red-600" />
               </div>
-            ))}
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Cancel Booking</h3>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to cancel this booking? This action cannot be undone.
+              </p>
+              <div className="flex space-x-3">
+                <button
+                  onClick={cancelCancelBooking}
+                  className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors duration-200 font-medium"
+                >
+                  Keep Booking
+                </button>
+                <button
+                  onClick={confirmCancelBooking}
+                  className="flex-1 px-4 py-2 text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors duration-200 font-medium"
+                >
+                  Yes, Cancel
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

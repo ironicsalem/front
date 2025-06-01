@@ -26,9 +26,9 @@ import type {
   Guide, 
   PopulatedReview, 
   Post, 
-  BaseUser 
+  BaseUser,
+  Trip
 } from '../../types/Types';
-import type { Trip } from '../../services/TripService';
 
 // Interface for the actual API response (Guide with populated userId)
 interface GuideWithPopulatedUser extends Omit<Guide, 'userId'> {

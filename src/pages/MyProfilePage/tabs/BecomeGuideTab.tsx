@@ -254,7 +254,7 @@ const BecomeGuideTab: React.FC = () => {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading application status...</p>
         </div>
       </div>
@@ -310,7 +310,7 @@ const BecomeGuideTab: React.FC = () => {
         {ErrorMessage}
         <div className="max-w-2xl mx-auto">
           <div className="text-center mb-8">
-            <UserCheck className="w-16 h-16 mx-auto mb-4 text-blue-600" />
+            <UserCheck className="w-16 h-16 mx-auto mb-4 text-amber-600" />
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Guide Application Status</h2>
           </div>
 
@@ -400,7 +400,7 @@ const BecomeGuideTab: React.FC = () => {
             <div className="mt-6 flex justify-center">
               <button
                 onClick={fetchApplication}
-                className="inline-flex items-center space-x-2 text-blue-600 hover:text-blue-700 font-medium"
+                className="inline-flex items-center space-x-2 text-amber-600 hover:text-amber-700 font-medium"
               >
                 <RefreshCw className="w-4 h-4" />
                 <span>Refresh Status</span>
@@ -419,7 +419,7 @@ const BecomeGuideTab: React.FC = () => {
         {ErrorMessage}
         <div className="max-w-2xl mx-auto">
           <div className="text-center mb-8">
-            <FileText className="w-16 h-16 mx-auto mb-4 text-blue-600" />
+            <FileText className="w-16 h-16 mx-auto mb-4 text-amber-600" />
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Apply to Become a Guide</h2>
             <p className="text-gray-600">Fill out the form below to submit your guide application</p>
           </div>
@@ -434,7 +434,7 @@ const BecomeGuideTab: React.FC = () => {
               <select
                 value={formData.city}
                 onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                 required
               >
                 {jordanianCities.map(city => (
@@ -456,7 +456,7 @@ const BecomeGuideTab: React.FC = () => {
                       type="checkbox"
                       checked={formData.languages.includes(language)}
                       onChange={() => handleLanguageToggle(language)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
                     />
                     <span className="text-sm text-gray-700">{language}</span>
                   </label>
@@ -477,7 +477,7 @@ const BecomeGuideTab: React.FC = () => {
                       type="checkbox"
                       checked={formData.specialties.includes(specialty)}
                       onChange={() => handleSpecialtyToggle(specialty)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
                     />
                     <span className="text-sm text-gray-700">{specialty}</span>
                   </label>
@@ -494,7 +494,7 @@ const BecomeGuideTab: React.FC = () => {
                 type="text"
                 value={formData.nationalId}
                 onChange={(e) => setFormData(prev => ({ ...prev, nationalId: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                 placeholder="Enter your national ID number"
                 required
               />
@@ -511,7 +511,7 @@ const BecomeGuideTab: React.FC = () => {
                   type="file"
                   onChange={(e) => handleFileChange('behavioralCertificate', e.target.files?.[0] || null)}
                   accept="image/*,.pdf"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                   required
                 />
                 <p className="text-xs text-gray-500 mt-1">Upload your behavioral certificate (PDF or image)</p>
@@ -526,7 +526,7 @@ const BecomeGuideTab: React.FC = () => {
                   type="file"
                   onChange={(e) => handleFileChange('nationalIdPicture', e.target.files?.[0] || null)}
                   accept="image/*"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                   required
                 />
                 <p className="text-xs text-gray-500 mt-1">Upload a clear photo of your national ID</p>
@@ -549,7 +549,7 @@ const BecomeGuideTab: React.FC = () => {
               <button
                 type="submit"
                 disabled={submitting || formData.languages.length === 0 || formData.specialties.length === 0}
-                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                className="flex-1 bg-amber-600 text-white py-2 px-4 rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
               >
                 {submitting && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>}
                 <span>{submitting ? 'Submitting...' : 'Submit Application'}</span>
@@ -568,7 +568,7 @@ const BecomeGuideTab: React.FC = () => {
       {ErrorMessage}
       <div className="max-w-2xl mx-auto text-center">
         <div className="mb-8">
-          <UserCheck className="w-24 h-24 mx-auto mb-6 text-blue-600" />
+          <UserCheck className="w-24 h-24 mx-auto mb-6 text-amber-600" />
           <h2 className="text-3xl font-bold text-gray-900 mb-4">Become a Tour Guide</h2>
           <p className="text-lg text-gray-600 mb-8 leading-relaxed">
             Share your knowledge and passion for Jordan with travelers from around the world. 
@@ -576,12 +576,12 @@ const BecomeGuideTab: React.FC = () => {
           </p>
         </div>
 
-        <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-8 mb-8">
+        <div className="bg-gradient-to-r from-amber-50 to-cyan-50 border border-amber-200 rounded-xl p-8 mb-8">
           <h3 className="text-xl font-semibold text-gray-900 mb-4">Why Become a Guide?</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
             <div className="flex items-start space-x-3">
-              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <Star className="w-4 h-4 text-blue-600" />
+              <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <Star className="w-4 h-4 text-amber-600" />
               </div>
               <div>
                 <h4 className="font-medium text-gray-900">Earn Income</h4>
@@ -624,7 +624,7 @@ const BecomeGuideTab: React.FC = () => {
             setError(null);
             setSuccess(null);
           }}
-          className="bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg hover:shadow-xl"
+          className="bg-amber-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-amber-700 transition-colors shadow-lg hover:shadow-xl"
         >
           Start Your Application
         </button>

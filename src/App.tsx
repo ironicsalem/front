@@ -21,8 +21,8 @@ import VerifyEmail from './pages/auth/VerifyEmail';
 import TripsPage from "./pages/Trips";
 import Guide from "./pages/GuidePage/Guide";
 import CreateTrip from "./pages/trip_creation/CreateTrip";
-import TripDetails from "./pages/TripDetails";
-import Booking from "./components/Booking";
+import TripPage from "./pages/TripPage";
+import BookingForm from "./components/BookingForm";
 import MyProfile from "./pages/MyProfilePage/MyProfile";
 
 // Services
@@ -265,7 +265,7 @@ function App() {
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/city/:cityName" element={<CityPage />} />
-            <Route path="/trip/:id" element={<TripDetails />} />
+            <Route path="/trip/:id" element={<TripPage />} />
             <Route path="/guide/:guideId" element={<Guide />} />
 
             {/* Authentication routes */}
@@ -350,10 +350,10 @@ function App() {
             />
 
             <Route
-              path="/booking/:tripId"
+              path="/booking/:id"
               element={
                 <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <Booking />
+                  <BookingForm />
                 </ProtectedRoute>
               }
             />

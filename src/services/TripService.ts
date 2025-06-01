@@ -1,63 +1,23 @@
 import axios from 'axios';
+import {
+  Location,
+  StartLocation,
+  TripSchedule,
+  Trip,
+  CreateTripRequest,
+  TripType,
+  ApiResponse
+} from '../types/Types';
 
-// Types
-export interface Location {
-  name: string;
-  position: {
-    lat?: number;
-    lng?: number;
-  };
-}
-
-export interface Schedule {
-  date: Date;
-  time: string;
-  isAvailable: boolean;
-}
-
-export interface StartLocation {
-  type: 'Point';
-  coordinates: [number, number]; // [longitude, latitude]
-  description?: string;
-}
-
+// Additional interfaces specific to TripService
 export interface GuideUser {
   name: string;
   phone: string;
   profilePicture?: string;
 }
 
-export interface Trip {
-  _id: string;
-  title: string;
-  guide: string;
-  city: string;
-  path: Location[];
-  schedule: Schedule[];
-  startLocation: StartLocation;
-  isAvailable: boolean;
-  imageUrl?: string;
-  price: number;
-  description: string;
-  type: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface TripWithGuide extends Trip {
   guideUser?: GuideUser;
-}
-
-export interface CreateTripData {
-  title: string;
-  city: string;
-  price: number;
-  description: string;
-  type: string;
-  schedule: Schedule[];
-  path: Location[];
-  startLocation: StartLocation;
-  image?: File;
 }
 
 export interface UpdateTripData {
@@ -65,20 +25,21 @@ export interface UpdateTripData {
   city?: string;
   price?: number;
   description?: string;
-  type?: string;
-  schedule?: Schedule[];
+  type?: TripType;
+  schedule?: TripSchedule[];
   path?: Location[];
+  startLocation?: StartLocation;
+  isAvailable?: boolean;
+  image?: File;
+}
+
+export interface CreateTripData extends Omit<CreateTripRequest, 'guide'> {
   image?: File;
 }
 
 export interface TripsResponse {
   trips: Trip[];
   hasNextPage: boolean;
-}
-
-export interface ApiResponse<T> {
-  message: string;
-  data?: T;
 }
 
 const API_URL = 'http://localhost:3000/trip';
@@ -282,7 +243,7 @@ const TripService = {
   },
 
   // Get available schedule slots for a trip
-  getAvailableSchedules: (trip: Trip): Schedule[] => {
+  getAvailableSchedules: (trip: Trip): TripSchedule[] => {
     return trip.schedule.filter(slot => slot.isAvailable);
   },
 
@@ -315,11 +276,11 @@ const TripService = {
   },
 
   // Filter trips by type
-  filterTripsByType: async (type: string, page: number = 1): Promise<TripsResponse> => {
+  filterTripsByType: async (type: TripType, page: number = 1): Promise<TripsResponse> => {
     try {
       const allTrips = await TripService.getTrips(page);
       const filteredTrips = allTrips.trips.filter(trip => 
-        trip.type.toLowerCase() === type.toLowerCase()
+        trip.type === type
       );
 
       return {

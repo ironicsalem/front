@@ -1,7 +1,7 @@
 // Base types
 export type UserRole = 'tourist' | 'guide' | 'admin';
 export type PaymentStatus = 'pending' | 'paid' | 'refunded';
-export type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'canceled' | 'no-show';
+export type BookingStatus = 'pending' | 'confirmed' | 'canceled'; // Updated to match backend
 export type TripType = 'Adventure' | 'Cultural' | 'Food' | 'Historical' | 'Nature' | 'Relaxation' | 'Group';
 export type ApplicationStatus = 'pending' | 'approved' | 'rejected';
 
@@ -12,6 +12,13 @@ export interface Location {
     lat: number;
     lng: number;
   };
+}
+
+// Start Location interface (for GeoJSON Point)
+export interface StartLocation {
+  type: 'Point';
+  coordinates: [number, number]; // [longitude, latitude]
+  description?: string;
 }
 
 // User interfaces
@@ -34,6 +41,7 @@ export interface BaseUser {
   userInteractions: UserInteractions;
   emailVerificationCode: string;
   emailVerificationCodeExpires?: Date;
+  password: string;
   verified: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -103,6 +111,8 @@ export interface Trip {
   city: string;
   path: Location[];
   schedule: TripSchedule[];
+  startLocation: StartLocation;
+  isAvailable: boolean;
   imageUrl?: string;
   price: number;
   description: string;
@@ -116,20 +126,15 @@ export interface PopulatedTrip extends Omit<Trip, 'guide'> {
   guide: Guide | PopulatedGuide;
 }
 
-// Booking interfaces
+// Booking interfaces - Updated to match backend
 export interface Booking {
   _id: string;
   tourist: string;
   trip: string;
   guide: string;
+  status: BookingStatus; // Changed from bookingStatus to status to match backend
   scheduledDate: Date;
   scheduledTime: string;
-  numberOfPeople: number;
-  totalPrice: number;
-  specialRequests: string;
-  paymentStatus: PaymentStatus;
-  bookingStatus: BookingStatus;
-  cancellationReason: string;
   contactPhone: string;
   contactEmail: string;
   createdAt: Date;
@@ -143,13 +148,14 @@ export interface PopulatedBooking extends Omit<Booking, 'tourist' | 'trip' | 'gu
   guide: Guide;
 }
 
-// Review interfaces
+// Review interfaces - Updated to match backend
 export interface Review {
   _id: string;
   content: string;
   rating: number;
   author: string;
   guide: string;
+  images: string[]; // Added images field from backend
   createdAt: Date;
   updatedAt: Date;
 }
@@ -241,15 +247,13 @@ export interface UpdateUserRequest {
   profilePicture?: string;
 }
 
+// Updated CreateBookingRequest to match backend
 export interface CreateBookingRequest {
   tourist: string;
   trip: string;
   guide: string;
   scheduledDate: Date;
   scheduledTime: string;
-  numberOfPeople: number;
-  totalPrice: number;
-  specialRequests?: string;
   contactPhone: string;
   contactEmail: string;
 }
@@ -260,17 +264,21 @@ export interface CreateTripRequest {
   city: string;
   path: Location[];
   schedule: TripSchedule[];
+  startLocation: StartLocation;
+  isAvailable?: boolean;
   imageUrl?: string;
   price: number;
   description: string;
   type: TripType;
 }
 
+// Updated CreateReviewRequest to include images
 export interface CreateReviewRequest {
   content: string;
   rating: number;
   author: string;
   guide: string;
+  images?: string[];
 }
 
 export interface CreatePostRequest {
@@ -323,7 +331,6 @@ export interface LoginResponse {
   user: BaseUser;
   token: string;
 }
-
 
 export interface RegisterResponse {
   user: BaseUser;
