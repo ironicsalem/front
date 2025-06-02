@@ -293,81 +293,96 @@ const CreateTrip: React.FC = () => {
     }
   };
 
-  // Submit function using TripService with new GeoJSON format
-  const handleSubmit = async (): Promise<void> => {
-    try {
-      setLoading(true);
-      
-      // Check if user is authenticated
-      if (!TripService.isAuthenticated()) {
-        toast.error('You must be logged in to create a trip');
-        navigate('/login');
-        return;
-      }
-      
-      // Set title if not provided
-      const finalTitle = tripData.title.trim() || `${tripData.city} Trip`;
-      
-      // Create the StartLocation in GeoJSON format
-      const startLocation = createStartLocationFromPath();
-      
-      // Convert the TripData to CreateTripData format expected by TripService
-      const createTripData: CreateTripData = {
-        title: finalTitle,
-        city: tripData.city,
-        price: tripData.price,
-        description: tripData.description,
-        type: tripData.type,
-        schedule: tripData.schedule,
-        path: tripData.path,
-        startLocation: startLocation,
-        image: tripData.image || undefined
-      };
-      
-      // Validate the trip data before submitting
-      const validationErrors = TripService.validateTripData(createTripData);
-      if (validationErrors.length > 0) {
-        validationErrors.forEach(error => toast.error(error));
-        setLoading(false);
-        return;
-      }
-      
-      console.log('Creating trip with data:', {
-        ...createTripData,
-        startLocation: startLocation,
-        pathCount: createTripData.path.length,
-        scheduleCount: createTripData.schedule.length
-      });
-      
-      // Create the trip using TripService
-      const createdTrip = await TripService.createTrip(createTripData);
-      
-      console.log('Trip created successfully:', {
-        id: createdTrip._id,
-        title: createdTrip.title,
-        startLocation: createdTrip.startLocation
-      });
-      
-      // Update the local tripData title if it was auto-generated
-      if (!tripData.title.trim()) {
-        setTripData(prev => ({ ...prev, title: finalTitle }));
-      }
-      
-      // Show success modal
-      setShowSuccessModal(true);
-      
-    } catch (error) {
-      console.error('Error creating trip:', error);
-      
-      if (error instanceof Error) {
-        toast.error(error.message);
-      } else {
-        toast.error('Failed to create trip. Please try again.');
-      }
-    } finally {
-      setLoading(false);
+ const handleSubmit = async (): Promise<void> => {
+  try {
+    setLoading(true);
+    
+    if (!TripService.isAuthenticated()) {
+      toast.error('You must be logged in to create a trip');
+      navigate('/login');
+      return;
     }
-  };
+    
+    const finalTitle = tripData.title.trim() || `${tripData.city} Trip`;
+    
+    const startLocation = createStartLocationFromPath();
+    
+    const createTripData: CreateTripData = {
+      title: finalTitle,
+      city: tripData.city,
+      price: tripData.price,
+      description: tripData.description,
+      type: tripData.type,
+      schedule: tripData.schedule,
+      path: tripData.path,
+      startLocation: startLocation,
+      image: tripData.image || undefined
+    };
+    
+    const validationErrors = TripService.validateTripData(createTripData);
+    if (validationErrors.length > 0) {
+      validationErrors.forEach(error => toast.error(error));
+      setLoading(false);
+      return;
+    }
+    
+    console.log('Creating trip with data:', {
+      ...createTripData,
+      startLocation: startLocation,
+      pathCount: createTripData.path.length,
+      scheduleCount: createTripData.schedule.length
+    });
+    
+    // Create the trip using TripService
+    const createdTrip = await TripService.createTrip(createTripData);
+    
+    console.log('Trip created successfully:', {
+      id: createdTrip._id,
+      title: createdTrip.title,
+      startLocation: createdTrip.startLocation
+    });
+    
+    // Update the local tripData title if it was auto-generated
+    if (!tripData.title.trim()) {
+      setTripData(prev => ({ ...prev, title: finalTitle }));
+    }
+    
+    setShowSuccessModal(true);
+    
+  } catch (error) {
+    console.error('Error creating trip:', error);
+    
+    if (error instanceof Error) {
+      // Check for scheduling conflict error
+      if (error.message.includes('already have a trip scheduled') || 
+          error.message.includes('scheduling conflict') ||
+          error.message.includes('already exists at this time')) {
+        toast.error(
+          <div>
+            <p className="font-semibold">Scheduling Conflict!</p>
+            <p>You already have a trip scheduled at this time.</p>
+            <p className="text-sm mt-1">Please choose a different time slot.</p>
+          </div>, 
+          {
+            autoClose: 5000,
+            closeButton: true,
+          }
+        );
+      } else {
+        toast.error(error.message);
+      }
+    } else {
+      toast.error('Failed to create trip. Please try again.');
+    }
+    
+    // Go back to schedule step if there's a conflict
+    if (error instanceof Error ) {
+      setCurrentStep(2);
+    }
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Success modal handlers
   const handleViewProfile = () => {
